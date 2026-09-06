@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+openpyxl
+pillow
+google-genai
+langchain
+langgraph
+langchain-google-genai
