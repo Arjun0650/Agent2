@@ -33,6 +33,7 @@ PENDING_FILE = DATA_DIR / "pending_ai_queue.json"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
@@ -42,10 +43,10 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 app = FastAPI(
     title="GCGW Payment Management Agent",
     description=(
-        "Payment and expenditure management "
+        "AI payment and expenditure management "
         "for Gopal Chavan Guniting Work."
     ),
-    version="1.1.0"
+    version="1.2.0"
 )
 
 app.mount(
@@ -56,7 +57,7 @@ app.mount(
 
 
 # ============================================================
-# HELPERS
+# BASIC HELPERS
 # ============================================================
 
 def clean_text(value):
@@ -90,10 +91,16 @@ def normalize_date(value):
         "%Y-%m-%d",
         "%d-%m-%Y",
         "%d/%m/%Y",
-        "%Y/%m/%d"
+        "%Y/%m/%d",
+        "%d %b %Y",
+        "%d %B %Y"
     ):
         try:
-            return datetime.strptime(text, fmt).date()
+            return datetime.strptime(
+                text,
+                fmt
+            ).date()
+
         except ValueError:
             pass
 
@@ -103,6 +110,7 @@ def normalize_date(value):
 def load_gcgw_workbook():
 
     if not WORKBOOK_FILE.exists():
+
         raise FileNotFoundError(
             f"GCGW workbook is unavailable: {WORKBOOK_FILE}"
         )
@@ -125,80 +133,145 @@ def get_approved_payments():
 
     records = []
 
-    for row in range(2, sheet.max_row + 1):
+    for row in range(
+        2,
+        sheet.max_row + 1
+    ):
 
-        internal_id = sheet.cell(row, 1).value
+        internal_id = sheet.cell(
+            row,
+            1
+        ).value
 
         if not internal_id:
             continue
 
         status = clean_text(
-            sheet.cell(row, 14).value
+            sheet.cell(
+                row,
+                14
+            ).value
         )
 
         if status.lower() != "approved":
             continue
 
         payment_date = normalize_date(
-            sheet.cell(row, 2).value
+            sheet.cell(
+                row,
+                2
+            ).value
         )
 
         records.append({
-            "id": clean_text(internal_id),
 
-            "date": (
-                payment_date.isoformat()
-                if payment_date
-                else clean_text(
-                    sheet.cell(row, 2).value
-                )
-            ),
+            "id":
+                clean_text(
+                    internal_id
+                ),
 
-            "time": clean_text(
-                sheet.cell(row, 3).value
-            ),
+            "date":
+                (
+                    payment_date.isoformat()
+                    if payment_date
+                    else clean_text(
+                        sheet.cell(
+                            row,
+                            2
+                        ).value
+                    )
+                ),
 
-            "amount": safe_amount(
-                sheet.cell(row, 4).value
-            ),
+            "time":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        3
+                    ).value
+                ),
 
-            "paid_to": clean_text(
-                sheet.cell(row, 5).value
-            ),
+            "amount":
+                safe_amount(
+                    sheet.cell(
+                        row,
+                        4
+                    ).value
+                ),
 
-            "project": clean_text(
-                sheet.cell(row, 6).value
-            ),
+            "paid_to":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        5
+                    ).value
+                ),
 
-            "category": clean_text(
-                sheet.cell(row, 7).value
-            ),
+            "project":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        6
+                    ).value
+                ),
 
-            "purpose": clean_text(
-                sheet.cell(row, 8).value
-            ),
+            "category":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        7
+                    ).value
+                ),
 
-            "payment_mode": clean_text(
-                sheet.cell(row, 9).value
-            ),
+            "purpose":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        8
+                    ).value
+                ),
 
-            "payment_app": clean_text(
-                sheet.cell(row, 10).value
-            ),
+            "payment_mode":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        9
+                    ).value
+                ),
 
-            "reference_no": clean_text(
-                sheet.cell(row, 11).value
-            ),
+            "payment_app":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        10
+                    ).value
+                ),
 
-            "screenshot": clean_text(
-                sheet.cell(row, 12).value
-            ),
+            "reference_no":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        11
+                    ).value
+                ),
 
-            "confidence": safe_amount(
-                sheet.cell(row, 13).value
-            ),
+            "screenshot":
+                clean_text(
+                    sheet.cell(
+                        row,
+                        12
+                    ).value
+                ),
 
-            "status": status
+            "confidence":
+                safe_amount(
+                    sheet.cell(
+                        row,
+                        13
+                    ).value
+                ),
+
+            "status":
+                status
         })
 
     workbook.close()
@@ -218,7 +291,10 @@ def get_review_payments():
 
     records = []
 
-    for row in range(2, sheet.max_row + 1):
+    for row in range(
+        2,
+        sheet.max_row + 1
+    ):
 
         transaction_id = sheet.cell(
             row,
@@ -229,7 +305,10 @@ def get_review_payments():
             continue
 
         decision = clean_text(
-            sheet.cell(row, 8).value
+            sheet.cell(
+                row,
+                8
+            ).value
         )
 
         if decision.lower() in {
@@ -240,39 +319,61 @@ def get_review_payments():
             continue
 
         records.append({
-            "row": row,
+
+            "row":
+                row,
 
             "transaction_id":
-                clean_text(transaction_id),
+                clean_text(
+                    transaction_id
+                ),
 
             "date":
                 clean_text(
-                    sheet.cell(row, 2).value
+                    sheet.cell(
+                        row,
+                        2
+                    ).value
                 ),
 
             "amount":
                 safe_amount(
-                    sheet.cell(row, 3).value
+                    sheet.cell(
+                        row,
+                        3
+                    ).value
                 ),
 
             "paid_to":
                 clean_text(
-                    sheet.cell(row, 4).value
+                    sheet.cell(
+                        row,
+                        4
+                    ).value
                 ),
 
             "project":
                 clean_text(
-                    sheet.cell(row, 5).value
+                    sheet.cell(
+                        row,
+                        5
+                    ).value
                 ),
 
             "category":
                 clean_text(
-                    sheet.cell(row, 6).value
+                    sheet.cell(
+                        row,
+                        6
+                    ).value
                 ),
 
             "reason":
                 clean_text(
-                    sheet.cell(row, 7).value
+                    sheet.cell(
+                        row,
+                        7
+                    ).value
                 ),
 
             "decision":
@@ -280,32 +381,50 @@ def get_review_payments():
 
             "screenshot":
                 clean_text(
-                    sheet.cell(row, 9).value
+                    sheet.cell(
+                        row,
+                        9
+                    ).value
                 ),
 
             "time":
                 clean_text(
-                    sheet.cell(row, 10).value
+                    sheet.cell(
+                        row,
+                        10
+                    ).value
                 ),
 
             "payment_mode":
                 clean_text(
-                    sheet.cell(row, 11).value
+                    sheet.cell(
+                        row,
+                        11
+                    ).value
                 ),
 
             "payment_app":
                 clean_text(
-                    sheet.cell(row, 12).value
+                    sheet.cell(
+                        row,
+                        12
+                    ).value
                 ),
 
             "purpose":
                 clean_text(
-                    sheet.cell(row, 13).value
+                    sheet.cell(
+                        row,
+                        13
+                    ).value
                 ),
 
             "confidence":
                 safe_amount(
-                    sheet.cell(row, 14).value
+                    sheet.cell(
+                        row,
+                        14
+                    ).value
                 )
         })
 
@@ -340,6 +459,42 @@ def get_pending_ai():
     return []
 
 
+def save_pending_ai(records):
+
+    try:
+
+        PENDING_FILE.write_text(
+            json.dumps(
+                records,
+                indent=2,
+                ensure_ascii=False,
+                default=str
+            ),
+            encoding="utf-8"
+        )
+
+    except Exception:
+        pass
+
+
+def remove_pending_item(filename):
+
+    pending = get_pending_ai()
+
+    updated = []
+
+    for item in pending:
+
+        item_filename = clean_text(
+            item.get("filename")
+        )
+
+        if item_filename != filename:
+            updated.append(item)
+
+    save_pending_ai(updated)
+
+
 # ============================================================
 # ACCOUNTING SUMMARY
 # ============================================================
@@ -361,12 +516,14 @@ def accounting_summary():
 
     for payment in payments:
 
-        amount = payment["amount"]
+        amount = safe_amount(
+            payment.get("amount")
+        )
 
         total += amount
 
         payment_date = normalize_date(
-            payment["date"]
+            payment.get("date")
         )
 
         if payment_date:
@@ -382,34 +539,50 @@ def accounting_summary():
                 month_total += amount
 
         project = (
-            payment["project"]
+            payment.get("project")
             or "Unassigned"
         )
 
         category = (
-            payment["category"]
+            payment.get("category")
             or "Other"
         )
 
         project_totals[project] = (
-            project_totals.get(project, 0)
+            project_totals.get(
+                project,
+                0
+            )
             + amount
         )
 
         category_totals[category] = (
-            category_totals.get(category, 0)
+            category_totals.get(
+                category,
+                0
+            )
             + amount
         )
 
     return {
+
         "total_expenditure":
-            round(total, 2),
+            round(
+                total,
+                2
+            ),
 
         "this_month":
-            round(month_total, 2),
+            round(
+                month_total,
+                2
+            ),
 
         "today":
-            round(today_total, 2),
+            round(
+                today_total,
+                2
+            ),
 
         "approved_payments":
             len(payments),
@@ -459,7 +632,14 @@ def health():
         WORKBOOK_FILE.exists()
     )
 
+    api_ready = bool(
+        os.environ.get(
+            "GOOGLE_API_KEY"
+        )
+    )
+
     return {
+
         "status":
             (
                 "healthy"
@@ -473,8 +653,11 @@ def health():
         "workbook":
             workbook_ready,
 
+        "gemini_api_configured":
+            api_ready,
+
         "version":
-            "1.1.0"
+            "1.2.0"
     }
 
 
@@ -486,6 +669,7 @@ def health():
 def summary():
 
     try:
+
         return accounting_summary()
 
     except Exception as e:
@@ -575,6 +759,17 @@ async def approve_review(
 
     try:
 
+        # Compatibility with frontend.
+        # Frontend may send "date".
+        if (
+            "date" in payload
+            and
+            "payment_date" not in payload
+        ):
+            payload["payment_date"] = (
+                payload.get("date")
+            )
+
         result = (
             approve_review_payment(
                 review_row,
@@ -582,7 +777,9 @@ async def approve_review(
             )
         )
 
-        if not result.get("success"):
+        if not result.get(
+            "success"
+        ):
 
             return JSONResponse(
                 status_code=400,
@@ -604,7 +801,7 @@ async def approve_review(
 
 
 # ============================================================
-# PENDING AI
+# PENDING AI LIST
 # ============================================================
 
 @app.get("/api/pending-ai")
@@ -620,10 +817,459 @@ def pending_ai():
 
 
 # ============================================================
+# PROCESS ONE SCREENSHOT
+# ============================================================
+
+def process_screenshot_file(
+    destination: Path
+):
+
+    stored_name = destination.name
+
+    # --------------------------------------------------------
+    # ONE FAST AI EXTRACTION
+    # --------------------------------------------------------
+
+    try:
+
+        extraction = (
+            extract_payment_for_web(
+                destination
+            )
+        )
+
+    except Exception as e:
+
+        extraction = {
+            "success": False,
+            "payment": None,
+            "validation": None,
+            "quota_error": False,
+            "error": str(e)
+        }
+
+    # --------------------------------------------------------
+    # COMPLETE AI FAILURE
+    # --------------------------------------------------------
+
+    if not extraction.get(
+        "success"
+    ):
+
+        error_text = (
+            extraction.get("error")
+            or
+            "AI extraction failed."
+        )
+
+        pending_result = (
+            add_pending_ai(
+                stored_name,
+                error_text
+            )
+        )
+
+        return {
+
+            "filename":
+                stored_name,
+
+            "status":
+                "PENDING_AI",
+
+            "quota_error":
+                extraction.get(
+                    "quota_error",
+                    False
+                ),
+
+            "error":
+                error_text,
+
+            "pending":
+                pending_result
+        }
+
+    # --------------------------------------------------------
+    # EXTRACTED PAYMENT
+    # --------------------------------------------------------
+
+    payment = (
+        extraction.get(
+            "payment"
+        )
+        or {}
+    )
+
+    validation = (
+        extraction.get(
+            "validation"
+        )
+        or {}
+    )
+
+    # --------------------------------------------------------
+    # IMPORTANT:
+    # PARTIAL DATA SHOULD GO TO REVIEW
+    # --------------------------------------------------------
+
+    problems = list(
+        validation.get(
+            "problems",
+            []
+        )
+        or []
+    )
+
+    # Project/category/purpose are allowed
+    # to be manually completed later.
+
+    if not payment.get("project"):
+
+        if (
+            "Project requires confirmation"
+            not in problems
+        ):
+            problems.append(
+                "Project requires confirmation"
+            )
+
+    if not payment.get("category"):
+
+        if (
+            "Category requires confirmation"
+            not in problems
+        ):
+            problems.append(
+                "Category requires confirmation"
+            )
+
+    if not payment.get("purpose"):
+
+        if (
+            "Purpose can be entered manually"
+            not in problems
+        ):
+            problems.append(
+                "Purpose can be entered manually"
+            )
+
+    # Financially important fields should
+    # still be manually checked if missing.
+
+    if not payment.get("paid_to"):
+
+        if (
+            "Payee requires confirmation"
+            not in problems
+        ):
+            problems.append(
+                "Payee requires confirmation"
+            )
+
+    if safe_amount(
+        payment.get("amount")
+    ) <= 0:
+
+        if (
+            "Amount requires confirmation"
+            not in problems
+        ):
+            problems.append(
+                "Amount requires confirmation"
+            )
+
+    if not payment.get(
+        "payment_date"
+    ):
+
+        if (
+            "Payment date requires confirmation"
+            not in problems
+        ):
+            problems.append(
+                "Payment date requires confirmation"
+            )
+
+    if not payment.get(
+        "transaction_id"
+    ):
+
+        if (
+            "Transaction/reference ID requires confirmation"
+            not in problems
+        ):
+            problems.append(
+                "Transaction/reference ID requires confirmation"
+            )
+
+    # --------------------------------------------------------
+    # USER REQUEST:
+    # EXTRACTED SCREENSHOTS GO TO REVIEW
+    # --------------------------------------------------------
+
+    validation = {
+        "valid": False,
+        "needs_review": True,
+        "problems": problems
+    }
+
+    try:
+
+        decision = (
+            process_extracted_payment(
+                payment=payment,
+                validation=validation,
+                screenshot_filename=
+                    stored_name
+            )
+        )
+
+    except Exception as e:
+
+        return {
+
+            "filename":
+                stored_name,
+
+            "status":
+                "FAILED",
+
+            "error":
+                (
+                    "Payment processing failed: "
+                    + str(e)
+                )
+        }
+
+    # Remove old pending entry if
+    # screenshot was successfully processed.
+
+    status = clean_text(
+        decision.get(
+            "status"
+        )
+    ).upper()
+
+    if status in {
+        "APPROVED",
+        "NEEDS_REVIEW",
+        "DUPLICATE"
+    }:
+
+        remove_pending_item(
+            stored_name
+        )
+
+    return {
+
+        "filename":
+            stored_name,
+
+        "status":
+            status or "FAILED",
+
+        "payment":
+            payment,
+
+        "validation":
+            validation,
+
+        "decision":
+            decision
+    }
+
+
+# ============================================================
+# RETRY ONE PENDING AI SCREENSHOT
+# ============================================================
+
+@app.post(
+    "/api/pending-ai/retry/{filename}"
+)
+async def retry_pending_ai(
+    filename: str
+):
+
+    try:
+
+        safe_name = Path(
+            filename
+        ).name
+
+        image_path = (
+            UPLOAD_DIR /
+            safe_name
+        )
+
+        if not image_path.exists():
+
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "status": "FILE_MISSING",
+                    "error": (
+                        "The screenshot file is no longer "
+                        "available on the server. "
+                        "Please upload it again."
+                    )
+                }
+            )
+
+        result = (
+            process_screenshot_file(
+                image_path
+            )
+        )
+
+        return {
+            "success": True,
+            "result": result
+        }
+
+    except Exception as e:
+
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e)
+            }
+        )
+
+
+# ============================================================
+# RETRY ALL PENDING AI SCREENSHOTS
+# ============================================================
+
+@app.post(
+    "/api/pending-ai/retry-all"
+)
+async def retry_all_pending_ai():
+
+    pending = get_pending_ai()
+
+    results = []
+
+    processed = 0
+    still_pending = 0
+    missing = 0
+    failed = 0
+
+    # Prevent duplicate filename retries.
+    seen = set()
+
+    for item in pending:
+
+        filename = clean_text(
+            item.get("filename")
+        )
+
+        if not filename:
+            continue
+
+        if filename in seen:
+            continue
+
+        seen.add(filename)
+
+        image_path = (
+            UPLOAD_DIR /
+            Path(filename).name
+        )
+
+        if not image_path.exists():
+
+            results.append({
+                "filename":
+                    filename,
+
+                "status":
+                    "FILE_MISSING",
+
+                "error":
+                    "Screenshot must be uploaded again."
+            })
+
+            missing += 1
+            continue
+
+        try:
+
+            result = (
+                process_screenshot_file(
+                    image_path
+                )
+            )
+
+            results.append(
+                result
+            )
+
+            status = clean_text(
+                result.get("status")
+            ).upper()
+
+            if status in {
+                "APPROVED",
+                "NEEDS_REVIEW",
+                "DUPLICATE"
+            }:
+
+                processed += 1
+
+            elif status == "PENDING_AI":
+
+                still_pending += 1
+
+            else:
+
+                failed += 1
+
+        except Exception as e:
+
+            results.append({
+                "filename":
+                    filename,
+
+                "status":
+                    "FAILED",
+
+                "error":
+                    str(e)
+            })
+
+            failed += 1
+
+    return {
+
+        "success": True,
+
+        "processed":
+            processed,
+
+        "still_pending":
+            still_pending,
+
+        "missing":
+            missing,
+
+        "failed":
+            failed,
+
+        "results":
+            results
+    }
+
+
+# ============================================================
 # DOWNLOAD UPDATED EXCEL
 # ============================================================
 
-@app.get("/api/download-excel")
+@app.get(
+    "/api/download-excel"
+)
 def download_excel():
 
     try:
@@ -639,8 +1285,10 @@ def download_excel():
                 }
             )
 
-        timestamp = datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S"
+        timestamp = (
+            datetime.now().strftime(
+                "%Y-%m-%d_%H-%M-%S"
+            )
         )
 
         download_name = (
@@ -649,11 +1297,14 @@ def download_excel():
         )
 
         return FileResponse(
-            path=str(WORKBOOK_FILE),
+            path=str(
+                WORKBOOK_FILE
+            ),
             filename=download_name,
             media_type=(
-                "application/vnd.openxmlformats-"
-                "officedocument.spreadsheetml.sheet"
+                "application/"
+                "vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
             )
         )
 
@@ -707,13 +1358,14 @@ async def upload_payment_screenshots(
             safe_name
         ).suffix.lower()
 
-        # -----------------------------------
-        # VALIDATE FILE
-        # -----------------------------------
+        # ----------------------------------------------------
+        # VALIDATE
+        # ----------------------------------------------------
 
         if extension not in allowed:
 
             results.append({
+
                 "filename":
                     safe_name,
 
@@ -725,11 +1377,12 @@ async def upload_payment_screenshots(
             })
 
             failed += 1
+
             continue
 
-        # -----------------------------------
-        # UNIQUE SCREENSHOT NAME
-        # -----------------------------------
+        # ----------------------------------------------------
+        # UNIQUE FILE NAME
+        # ----------------------------------------------------
 
         destination = (
             UPLOAD_DIR /
@@ -751,15 +1404,21 @@ async def upload_payment_screenshots(
 
             counter += 1
 
-        # -----------------------------------
+        # ----------------------------------------------------
         # SAVE SCREENSHOT
-        # -----------------------------------
+        # ----------------------------------------------------
 
         try:
 
             content = (
                 await uploaded_file.read()
             )
+
+            if not content:
+
+                raise ValueError(
+                    "Uploaded file is empty."
+                )
 
             destination.write_bytes(
                 content
@@ -768,6 +1427,7 @@ async def upload_payment_screenshots(
         except Exception as e:
 
             results.append({
+
                 "filename":
                     safe_name,
 
@@ -782,157 +1442,49 @@ async def upload_payment_screenshots(
             })
 
             failed += 1
+
             continue
 
-        stored_name = destination.name
+        # ----------------------------------------------------
+        # PROCESS IMMEDIATELY
+        # ----------------------------------------------------
 
-        # -----------------------------------
-        # AI EXTRACTION
-        # -----------------------------------
-
-        try:
-
-            extraction = (
-                extract_payment_for_web(
-                    destination
-                )
-            )
-
-        except Exception as e:
-
-            extraction = {
-                "success": False,
-                "error": str(e),
-                "quota_error": False
-            }
-
-        # -----------------------------------
-        # AI FAILURE
-        # -----------------------------------
-
-        if not extraction.get("success"):
-
-            error_text = (
-                extraction.get("error")
-                or
-                "AI extraction failed."
-            )
-
-            pending_result = (
-                add_pending_ai(
-                    stored_name,
-                    error_text
-                )
-            )
-
-            results.append({
-                "filename":
-                    stored_name,
-
-                "status":
-                    "PENDING_AI",
-
-                "quota_error":
-                    extraction.get(
-                        "quota_error",
-                        False
-                    ),
-
-                "error":
-                    error_text,
-
-                "pending":
-                    pending_result
-            })
-
-            pending_ai_count += 1
-            continue
-
-        # -----------------------------------
-        # PAYMENT DATA
-        # -----------------------------------
-
-        payment = (
-            extraction.get("payment")
-            or {}
-        )
-
-        validation = (
-            extraction.get("validation")
-            or {}
-        )
-
-        # -----------------------------------
-        # PROCESS PAYMENT
-        # -----------------------------------
-
-        try:
-
-            decision = (
-                process_extracted_payment(
-                    payment=payment,
-                    validation=validation,
-                    screenshot_filename=
-                        stored_name
-                )
-            )
-
-        except Exception as e:
-
-            results.append({
-                "filename":
-                    stored_name,
-
-                "status":
-                    "FAILED",
-
-                "error":
-                    (
-                        "Payment processing failed: "
-                        + str(e)
-                    )
-            })
-
-            failed += 1
-            continue
-
-        status = (
-            decision.get(
-                "status",
-                "FAILED"
+        result = (
+            process_screenshot_file(
+                destination
             )
         )
+
+        results.append(
+            result
+        )
+
+        status = clean_text(
+            result.get("status")
+        ).upper()
 
         if status == "APPROVED":
+
             approved += 1
 
         elif status == "NEEDS_REVIEW":
+
             needs_review += 1
 
+        elif status == "PENDING_AI":
+
+            pending_ai_count += 1
+
         elif status == "DUPLICATE":
+
             duplicates += 1
 
         else:
+
             failed += 1
 
-        results.append({
-            "filename":
-                stored_name,
-
-            "status":
-                status,
-
-            "payment":
-                payment,
-
-            "validation":
-                validation,
-
-            "decision":
-                decision
-        })
-
     return {
+
         "success": True,
 
         "uploaded":
@@ -963,10 +1515,14 @@ async def upload_payment_screenshots(
 # ============================================================
 
 @app.post("/api/ask")
-async def ask_agent(payload: dict):
+async def ask_agent(
+    payload: dict
+):
 
     question = clean_text(
-        payload.get("question")
+        payload.get(
+            "question"
+        )
     )
 
     if not question:
@@ -992,12 +1548,63 @@ async def ask_agent(payload: dict):
 
     answer = None
 
-    # TOTAL EXPENDITURE
+    # ========================================================
+    # NO APPROVED PAYMENTS
+    # ========================================================
 
-    if (
+    if not payments:
+
+        if summary_data["needs_review"] > 0:
+
+            answer = (
+                "There are currently no approved payments. "
+                f"{summary_data['needs_review']} payment(s) "
+                "are waiting for manual review, so they are "
+                "not included in expenditure totals yet."
+            )
+
+        elif summary_data["pending_ai"] > 0:
+
+            answer = (
+                "There are currently no approved payments. "
+                f"{summary_data['pending_ai']} screenshot(s) "
+                "are still waiting for AI processing."
+            )
+
+        else:
+
+            answer = (
+                "There are currently no approved payments "
+                "in the GCGW accounting workbook."
+            )
+
+    # ========================================================
+    # TOTAL EXPENDITURE
+    # ========================================================
+
+    if answer is None and (
         "total expenditure" in q
+        or "total expenditures" in q
+        or "total expense" in q
+        or "total expenses" in q
         or "total spent" in q
         or "total spending" in q
+        or "overall expenditure" in q
+        or "overall expense" in q
+        or (
+            "how much" in q
+            and "spent" in q
+            and "month" not in q
+            and "today" not in q
+        )
+        or (
+            "what are my" in q
+            and "expenditure" in q
+        )
+        or (
+            "what is my" in q
+            and "expenditure" in q
+        )
     ):
 
         answer = (
@@ -1005,11 +1612,15 @@ async def ask_agent(payload: dict):
             f"₹{summary_data['total_expenditure']:,.2f}."
         )
 
-    # MONTH
+    # ========================================================
+    # THIS MONTH
+    # ========================================================
 
-    elif (
+    if answer is None and (
         "this month" in q
+        or "monthly expenditure" in q
         or "month expenditure" in q
+        or "monthly expense" in q
     ):
 
         answer = (
@@ -1017,15 +1628,19 @@ async def ask_agent(payload: dict):
             f"₹{summary_data['this_month']:,.2f}."
         )
 
+    # ========================================================
     # TODAY
+    # ========================================================
 
-    elif (
+    if answer is None and (
         "today" in q
-        and
-        (
+        and (
             "spend" in q
+            or "spent" in q
             or "expenditure" in q
+            or "expense" in q
             or "paid" in q
+            or "payment" in q
         )
     ):
 
@@ -1034,12 +1649,109 @@ async def ask_agent(payload: dict):
             f"₹{summary_data['today']:,.2f}."
         )
 
-    # HIGHEST PROJECT
+    # ========================================================
+    # NUMBER OF PAYMENTS
+    # ========================================================
 
-    elif (
+    if answer is None and (
+        "how many payments" in q
+        or "number of payments" in q
+        or "approved payments" in q
+    ):
+
+        answer = (
+            "There are "
+            f"{summary_data['approved_payments']} "
+            "approved payment(s)."
+        )
+
+    # ========================================================
+    # NEEDS REVIEW COUNT
+    # ========================================================
+
+    if answer is None and (
+        "needs review" in q
+        or "need review" in q
+        or "review payments" in q
+    ):
+
+        answer = (
+            f"{summary_data['needs_review']} "
+            "payment(s) currently need manual review."
+        )
+
+    # ========================================================
+    # PENDING AI COUNT
+    # ========================================================
+
+    if answer is None and (
+        "pending ai" in q
+        or "pending payments" in q
+        or "pending screenshot" in q
+    ):
+
+        answer = (
+            f"{summary_data['pending_ai']} "
+            "screenshot(s) are currently pending AI processing."
+        )
+
+    # ========================================================
+    # HIGHEST SINGLE EXPENSE
+    # ========================================================
+
+    if answer is None and (
+        "highest expense" in q
+        or "largest expense" in q
+        or "biggest expense" in q
+        or "highest payment" in q
+        or "largest payment" in q
+    ):
+
+        if payments:
+
+            highest = max(
+                payments,
+                key=lambda x: safe_amount(
+                    x.get("amount")
+                )
+            )
+
+            answer = (
+                "The highest approved payment is "
+                f"₹{highest['amount']:,.2f}"
+            )
+
+            if highest.get(
+                "paid_to"
+            ):
+
+                answer += (
+                    f" paid to {highest['paid_to']}"
+                )
+
+            if highest.get(
+                "project"
+            ):
+
+                answer += (
+                    f" for {highest['project']}"
+                )
+
+            answer += "."
+
+        else:
+
+            answer = (
+                "There are no approved payments yet."
+            )
+
+    # ========================================================
+    # HIGHEST PROJECT
+    # ========================================================
+
+    if answer is None and (
         "highest" in q
-        and
-        "project" in q
+        and "project" in q
     ):
 
         totals = (
@@ -1068,7 +1780,9 @@ async def ask_agent(payload: dict):
                 "project expenses yet."
             )
 
+    # ========================================================
     # PROJECT SEARCH
+    # ========================================================
 
     if answer is None:
 
@@ -1092,7 +1806,9 @@ async def ask_agent(payload: dict):
 
                 break
 
+    # ========================================================
     # CATEGORY SEARCH
+    # ========================================================
 
     if answer is None:
 
@@ -1116,7 +1832,9 @@ async def ask_agent(payload: dict):
 
                 break
 
+    # ========================================================
     # PAYEE SEARCH
+    # ========================================================
 
     if answer is None:
 
@@ -1124,16 +1842,18 @@ async def ask_agent(payload: dict):
 
         for payment in payments:
 
-            payee = (
-                payment["paid_to"]
-                .lower()
+            payee = clean_text(
+                payment.get(
+                    "paid_to"
+                )
             )
 
             if (
                 payee
                 and
-                payee in q
+                payee.lower() in q
             ):
+
                 matching.append(
                     payment
                 )
@@ -1141,32 +1861,70 @@ async def ask_agent(payload: dict):
         if matching:
 
             amount = sum(
-                item["amount"]
+                safe_amount(
+                    item.get(
+                        "amount"
+                    )
+                )
                 for item in matching
+            )
+
+            payee_name = (
+                matching[0][
+                    "paid_to"
+                ]
             )
 
             answer = (
                 f"There are {len(matching)} "
-                "approved payment(s) matching "
-                f"that payee, totaling "
+                f"approved payment(s) to "
+                f"{payee_name}, totaling "
                 f"₹{amount:,.2f}."
             )
 
+    # ========================================================
     # SAFE FALLBACK
+    # ========================================================
 
     if answer is None:
 
         answer = (
-            "I could not answer that safely "
-            "from the current accounting rules. "
-            "No financial data was guessed."
+            "I could not match that question to an "
+            "accounting calculation yet. You can ask things "
+            "like: total expenditure, today's expenditure, "
+            "this month's expenditure, highest expense, "
+            "project expenditure, category expenditure, "
+            "or payments to a particular person."
         )
 
     return {
-        "success": True,
-        "question": question,
-        "answer": answer,
-        "source": "GCGW Excel records"
+
+        "success":
+            True,
+
+        "question":
+            question,
+
+        "answer":
+            answer,
+
+        "source":
+            "GCGW approved Excel records",
+
+        "approved_payments":
+            summary_data[
+                "approved_payments"
+            ],
+
+        "needs_review":
+            summary_data[
+                "needs_review"
+            ],
+
+        "pending_ai":
+            summary_data[
+                "pending_ai"
+            ]
     }
 
 
