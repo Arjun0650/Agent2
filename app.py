@@ -4,53 +4,40 @@ from pathlib import Path
 from datetime import date, datetime
 
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import (
-    HTMLResponse,
-    JSONResponse,
-    FileResponse
-)
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from openpyxl import load_workbook
 
 from ai_engine import extract_payment_for_web
-
-# IMPORTANT:
-# We import the workbook/storage paths from payment_engine
-# so BOTH app.py and payment_engine.py always use the SAME Excel file.
 from payment_engine import (
     process_extracted_payment,
     add_pending_ai,
-    approve_review_payment,
-    WORKBOOK_FILE,
-    PENDING_FILE,
-    UPLOAD_DIR
+    approve_review_payment
 )
 
 
-# ============================================
+# ============================================================
 # PATHS
-# ============================================
+# ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
+UPLOAD_DIR = BASE_DIR / "uploads"
+DATA_DIR = BASE_DIR / "data"
 
-UPLOAD_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
+WORKBOOK_FILE = DATA_DIR / "GCGW_Payment_Management.xlsx"
+PENDING_FILE = DATA_DIR / "pending_ai_queue.json"
 
-WORKBOOK_FILE.parent.mkdir(
-    parents=True,
-    exist_ok=True
-)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ============================================
+# ============================================================
 # FASTAPI
-# ============================================
+# ============================================================
 
 app = FastAPI(
     title="GCGW Payment Management Agent",
@@ -61,22 +48,18 @@ app = FastAPI(
     version="1.1.0"
 )
 
-
 app.mount(
     "/static",
-    StaticFiles(
-        directory=str(STATIC_DIR)
-    ),
+    StaticFiles(directory=str(STATIC_DIR)),
     name="static"
 )
 
 
-# ============================================
+# ============================================================
 # HELPERS
-# ============================================
+# ============================================================
 
 def clean_text(value):
-
     if value is None:
         return ""
 
@@ -84,10 +67,8 @@ def clean_text(value):
 
 
 def safe_amount(value):
-
     try:
         return float(value or 0)
-
     except (TypeError, ValueError):
         return 0.0
 
@@ -111,13 +92,8 @@ def normalize_date(value):
         "%d/%m/%Y",
         "%Y/%m/%d"
     ):
-
         try:
-            return datetime.strptime(
-                text,
-                fmt
-            ).date()
-
+            return datetime.strptime(text, fmt).date()
         except ValueError:
             pass
 
@@ -127,10 +103,8 @@ def normalize_date(value):
 def load_gcgw_workbook():
 
     if not WORKBOOK_FILE.exists():
-
         raise FileNotFoundError(
-            f"GCGW workbook is unavailable: "
-            f"{WORKBOOK_FILE}"
+            f"GCGW workbook is unavailable: {WORKBOOK_FILE}"
         )
 
     return load_workbook(
@@ -139,182 +113,112 @@ def load_gcgw_workbook():
     )
 
 
-# ============================================
+# ============================================================
 # APPROVED PAYMENTS
-# ============================================
+# ============================================================
 
 def get_approved_payments():
 
     workbook = load_gcgw_workbook()
 
-    sheet = workbook[
-        "All Payments"
-    ]
+    sheet = workbook["All Payments"]
 
     records = []
 
-    for row in range(
-        2,
-        sheet.max_row + 1
-    ):
+    for row in range(2, sheet.max_row + 1):
 
-        internal_id = sheet.cell(
-            row,
-            1
-        ).value
+        internal_id = sheet.cell(row, 1).value
 
         if not internal_id:
             continue
 
         status = clean_text(
-            sheet.cell(
-                row,
-                14
-            ).value
+            sheet.cell(row, 14).value
         )
 
         if status.lower() != "approved":
             continue
 
         payment_date = normalize_date(
-            sheet.cell(
-                row,
-                2
-            ).value
+            sheet.cell(row, 2).value
         )
 
         records.append({
+            "id": clean_text(internal_id),
 
-            "id":
-                clean_text(
-                    internal_id
-                ),
+            "date": (
+                payment_date.isoformat()
+                if payment_date
+                else clean_text(
+                    sheet.cell(row, 2).value
+                )
+            ),
 
-            "date":
-                (
-                    payment_date.isoformat()
-                    if payment_date
-                    else clean_text(
-                        sheet.cell(
-                            row,
-                            2
-                        ).value
-                    )
-                ),
+            "time": clean_text(
+                sheet.cell(row, 3).value
+            ),
 
-            "time":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        3
-                    ).value
-                ),
+            "amount": safe_amount(
+                sheet.cell(row, 4).value
+            ),
 
-            "amount":
-                safe_amount(
-                    sheet.cell(
-                        row,
-                        4
-                    ).value
-                ),
+            "paid_to": clean_text(
+                sheet.cell(row, 5).value
+            ),
 
-            "paid_to":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        5
-                    ).value
-                ),
+            "project": clean_text(
+                sheet.cell(row, 6).value
+            ),
 
-            "project":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        6
-                    ).value
-                ),
+            "category": clean_text(
+                sheet.cell(row, 7).value
+            ),
 
-            "category":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        7
-                    ).value
-                ),
+            "purpose": clean_text(
+                sheet.cell(row, 8).value
+            ),
 
-            "purpose":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        8
-                    ).value
-                ),
+            "payment_mode": clean_text(
+                sheet.cell(row, 9).value
+            ),
 
-            "payment_mode":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        9
-                    ).value
-                ),
+            "payment_app": clean_text(
+                sheet.cell(row, 10).value
+            ),
 
-            "payment_app":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        10
-                    ).value
-                ),
+            "reference_no": clean_text(
+                sheet.cell(row, 11).value
+            ),
 
-            "reference_no":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        11
-                    ).value
-                ),
+            "screenshot": clean_text(
+                sheet.cell(row, 12).value
+            ),
 
-            "screenshot":
-                clean_text(
-                    sheet.cell(
-                        row,
-                        12
-                    ).value
-                ),
+            "confidence": safe_amount(
+                sheet.cell(row, 13).value
+            ),
 
-            "confidence":
-                safe_amount(
-                    sheet.cell(
-                        row,
-                        13
-                    ).value
-                ),
-
-            "status":
-                status
+            "status": status
         })
+
+    workbook.close()
 
     return records
 
 
-# ============================================
+# ============================================================
 # NEEDS REVIEW
-# ============================================
+# ============================================================
 
 def get_review_payments():
 
     workbook = load_gcgw_workbook()
 
-    sheet = workbook[
-        "Needs Review"
-    ]
+    sheet = workbook["Needs Review"]
 
     records = []
 
-    for row in range(
-        2,
-        sheet.max_row + 1
-    ):
+    for row in range(2, sheet.max_row + 1):
 
         transaction_id = sheet.cell(
             row,
@@ -325,10 +229,7 @@ def get_review_payments():
             continue
 
         decision = clean_text(
-            sheet.cell(
-                row,
-                8
-            ).value
+            sheet.cell(row, 8).value
         )
 
         if decision.lower() in {
@@ -339,60 +240,39 @@ def get_review_payments():
             continue
 
         records.append({
-
             "row": row,
 
             "transaction_id":
-                clean_text(
-                    transaction_id
-                ),
+                clean_text(transaction_id),
 
             "date":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        2
-                    ).value
+                    sheet.cell(row, 2).value
                 ),
 
             "amount":
                 safe_amount(
-                    sheet.cell(
-                        row,
-                        3
-                    ).value
+                    sheet.cell(row, 3).value
                 ),
 
             "paid_to":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        4
-                    ).value
+                    sheet.cell(row, 4).value
                 ),
 
             "project":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        5
-                    ).value
+                    sheet.cell(row, 5).value
                 ),
 
             "category":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        6
-                    ).value
+                    sheet.cell(row, 6).value
                 ),
 
             "reason":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        7
-                    ).value
+                    sheet.cell(row, 7).value
                 ),
 
             "decision":
@@ -400,59 +280,43 @@ def get_review_payments():
 
             "screenshot":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        9
-                    ).value
+                    sheet.cell(row, 9).value
                 ),
 
             "time":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        10
-                    ).value
+                    sheet.cell(row, 10).value
                 ),
 
             "payment_mode":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        11
-                    ).value
+                    sheet.cell(row, 11).value
                 ),
 
             "payment_app":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        12
-                    ).value
+                    sheet.cell(row, 12).value
                 ),
 
             "purpose":
                 clean_text(
-                    sheet.cell(
-                        row,
-                        13
-                    ).value
+                    sheet.cell(row, 13).value
                 ),
 
             "confidence":
                 safe_amount(
-                    sheet.cell(
-                        row,
-                        14
-                    ).value
+                    sheet.cell(row, 14).value
                 )
         })
+
+    workbook.close()
 
     return records
 
 
-# ============================================
+# ============================================================
 # PENDING AI
-# ============================================
+# ============================================================
 
 def get_pending_ai():
 
@@ -476,16 +340,14 @@ def get_pending_ai():
     return []
 
 
-# ============================================
+# ============================================================
 # ACCOUNTING SUMMARY
-# ============================================
+# ============================================================
 
 def accounting_summary():
 
     payments = get_approved_payments()
-
     review = get_review_payments()
-
     pending = get_pending_ai()
 
     today = date.today()
@@ -513,11 +375,9 @@ def accounting_summary():
                 today_total += amount
 
             if (
-                payment_date.year
-                == today.year
+                payment_date.year == today.year
                 and
-                payment_date.month
-                == today.month
+                payment_date.month == today.month
             ):
                 month_total += amount
 
@@ -532,23 +392,16 @@ def accounting_summary():
         )
 
         project_totals[project] = (
-            project_totals.get(
-                project,
-                0
-            )
+            project_totals.get(project, 0)
             + amount
         )
 
         category_totals[category] = (
-            category_totals.get(
-                category,
-                0
-            )
+            category_totals.get(category, 0)
             + amount
         )
 
     return {
-
         "total_expenditure":
             round(total, 2),
 
@@ -567,9 +420,6 @@ def accounting_summary():
         "pending_ai":
             len(pending),
 
-        "needs_attention":
-            len(review) + len(pending),
-
         "project_totals":
             project_totals,
 
@@ -578,9 +428,9 @@ def accounting_summary():
     }
 
 
-# ============================================
+# ============================================================
 # HOME
-# ============================================
+# ============================================================
 
 @app.get(
     "/",
@@ -598,9 +448,9 @@ def home():
     )
 
 
-# ============================================
+# ============================================================
 # HEALTH
-# ============================================
+# ============================================================
 
 @app.get("/health")
 def health():
@@ -610,7 +460,6 @@ def health():
     )
 
     return {
-
         "status":
             (
                 "healthy"
@@ -624,84 +473,14 @@ def health():
         "workbook":
             workbook_ready,
 
-        "workbook_path":
-            str(WORKBOOK_FILE),
-
-        "approved_payments":
-            (
-                len(get_approved_payments())
-                if workbook_ready
-                else 0
-            ),
-
         "version":
             "1.1.0"
     }
 
 
-# ============================================
-# DOWNLOAD UPDATED EXCEL
-# ============================================
-
-@app.get("/api/download-excel")
-def download_excel():
-
-    try:
-
-        if not WORKBOOK_FILE.exists():
-
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "success": False,
-                    "error":
-                        "Updated GCGW workbook "
-                        "was not found."
-                }
-            )
-
-        # Verify workbook is readable
-        workbook = load_gcgw_workbook()
-
-        # Save once before download.
-        # This ensures the latest in-file state is valid.
-        workbook.save(
-            WORKBOOK_FILE
-        )
-
-        filename = (
-            "GCGW_Payment_Management_"
-            + datetime.now().strftime(
-                "%Y-%m-%d_%H-%M-%S"
-            )
-            + ".xlsx"
-        )
-
-        return FileResponse(
-            path=str(WORKBOOK_FILE),
-            media_type=(
-                "application/vnd.openxmlformats-"
-                "officedocument.spreadsheetml.sheet"
-            ),
-            filename=filename
-        )
-
-    except Exception as e:
-
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "error":
-                    "Could not download Excel: "
-                    + str(e)
-            }
-        )
-
-
-# ============================================
-# REAL SUMMARY
-# ============================================
+# ============================================================
+# SUMMARY
+# ============================================================
 
 @app.get("/api/summary")
 def summary():
@@ -720,16 +499,18 @@ def summary():
         )
 
 
-# ============================================
+# ============================================================
 # PAYMENT HISTORY
-# ============================================
+# ============================================================
 
 @app.get("/api/payments")
 def payment_history():
 
     try:
 
-        payments = get_approved_payments()
+        payments = (
+            get_approved_payments()
+        )
 
         payments.reverse()
 
@@ -750,16 +531,18 @@ def payment_history():
         )
 
 
-# ============================================
-# NEEDS REVIEW
-# ============================================
+# ============================================================
+# REVIEW QUEUE
+# ============================================================
 
 @app.get("/api/review")
 def review_queue():
 
     try:
 
-        payments = get_review_payments()
+        payments = (
+            get_review_payments()
+        )
 
         return {
             "success": True,
@@ -778,9 +561,9 @@ def review_queue():
         )
 
 
-# ============================================
+# ============================================================
 # APPROVE REVIEW PAYMENT
-# ============================================
+# ============================================================
 
 @app.post(
     "/api/review/{review_row}/approve"
@@ -792,9 +575,11 @@ async def approve_review(
 
     try:
 
-        result = approve_review_payment(
-            review_row,
-            payload
+        result = (
+            approve_review_payment(
+                review_row,
+                payload
+            )
         )
 
         if not result.get("success"):
@@ -818,9 +603,9 @@ async def approve_review(
         )
 
 
-# ============================================
+# ============================================================
 # PENDING AI
-# ============================================
+# ============================================================
 
 @app.get("/api/pending-ai")
 def pending_ai():
@@ -834,9 +619,58 @@ def pending_ai():
     }
 
 
-# ============================================
+# ============================================================
+# DOWNLOAD UPDATED EXCEL
+# ============================================================
+
+@app.get("/api/download-excel")
+def download_excel():
+
+    try:
+
+        if not WORKBOOK_FILE.exists():
+
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "error":
+                        "GCGW Excel workbook was not found."
+                }
+            )
+
+        timestamp = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )
+
+        download_name = (
+            "GCGW_Payment_Management_"
+            f"{timestamp}.xlsx"
+        )
+
+        return FileResponse(
+            path=str(WORKBOOK_FILE),
+            filename=download_name,
+            media_type=(
+                "application/vnd.openxmlformats-"
+                "officedocument.spreadsheetml.sheet"
+            )
+        )
+
+    except Exception as e:
+
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e)
+            }
+        )
+
+
+# ============================================================
 # SCREENSHOT UPLOAD
-# ============================================
+# ============================================================
 
 @app.post("/api/upload")
 async def upload_payment_screenshots(
@@ -873,15 +707,19 @@ async def upload_payment_screenshots(
             safe_name
         ).suffix.lower()
 
-        # ------------------------------------
-        # FILE VALIDATION
-        # ------------------------------------
+        # -----------------------------------
+        # VALIDATE FILE
+        # -----------------------------------
 
         if extension not in allowed:
 
             results.append({
-                "filename": safe_name,
-                "status": "REJECTED",
+                "filename":
+                    safe_name,
+
+                "status":
+                    "REJECTED",
+
                 "error":
                     "Unsupported image format."
             })
@@ -889,9 +727,9 @@ async def upload_payment_screenshots(
             failed += 1
             continue
 
-        # ------------------------------------
-        # STORE SCREENSHOT
-        # ------------------------------------
+        # -----------------------------------
+        # UNIQUE SCREENSHOT NAME
+        # -----------------------------------
 
         destination = (
             UPLOAD_DIR /
@@ -913,6 +751,10 @@ async def upload_payment_screenshots(
 
             counter += 1
 
+        # -----------------------------------
+        # SAVE SCREENSHOT
+        # -----------------------------------
+
         try:
 
             content = (
@@ -926,23 +768,27 @@ async def upload_payment_screenshots(
         except Exception as e:
 
             results.append({
-                "filename": safe_name,
-                "status": "FAILED",
+                "filename":
+                    safe_name,
+
+                "status":
+                    "FAILED",
+
                 "error":
-                    "Could not store screenshot: "
-                    + str(e)
+                    (
+                        "Could not store screenshot: "
+                        + str(e)
+                    )
             })
 
             failed += 1
             continue
 
-        stored_name = (
-            destination.name
-        )
+        stored_name = destination.name
 
-        # ------------------------------------
+        # -----------------------------------
         # AI EXTRACTION
-        # ------------------------------------
+        # -----------------------------------
 
         try:
 
@@ -956,13 +802,13 @@ async def upload_payment_screenshots(
 
             extraction = {
                 "success": False,
-                "quota_error": False,
-                "error": str(e)
+                "error": str(e),
+                "quota_error": False
             }
 
-        # ------------------------------------
+        # -----------------------------------
         # AI FAILURE
-        # ------------------------------------
+        # -----------------------------------
 
         if not extraction.get("success"):
 
@@ -980,7 +826,6 @@ async def upload_payment_screenshots(
             )
 
             results.append({
-
                 "filename":
                     stored_name,
 
@@ -1003,9 +848,9 @@ async def upload_payment_screenshots(
             pending_ai_count += 1
             continue
 
-        # ------------------------------------
-        # EXTRACTED PAYMENT
-        # ------------------------------------
+        # -----------------------------------
+        # PAYMENT DATA
+        # -----------------------------------
 
         payment = (
             extraction.get("payment")
@@ -1016,6 +861,10 @@ async def upload_payment_screenshots(
             extraction.get("validation")
             or {}
         )
+
+        # -----------------------------------
+        # PROCESS PAYMENT
+        # -----------------------------------
 
         try:
 
@@ -1038,8 +887,10 @@ async def upload_payment_screenshots(
                     "FAILED",
 
                 "error":
-                    "Payment processing failed: "
-                    + str(e)
+                    (
+                        "Payment processing failed: "
+                        + str(e)
+                    )
             })
 
             failed += 1
@@ -1065,7 +916,6 @@ async def upload_payment_screenshots(
             failed += 1
 
         results.append({
-
             "filename":
                 stored_name,
 
@@ -1083,7 +933,6 @@ async def upload_payment_screenshots(
         })
 
     return {
-
         "success": True,
 
         "uploaded":
@@ -1109,9 +958,9 @@ async def upload_payment_screenshots(
     }
 
 
-# ============================================
+# ============================================================
 # ACCOUNTING AGENT
-# ============================================
+# ============================================================
 
 @app.post("/api/ask")
 async def ask_agent(payload: dict):
@@ -1131,7 +980,7 @@ async def ask_agent(payload: dict):
             }
         )
 
-    q = question.lower().strip()
+    q = question.lower()
 
     summary_data = (
         accounting_summary()
@@ -1143,55 +992,24 @@ async def ask_agent(payload: dict):
 
     answer = None
 
-    # ----------------------------------------
     # TOTAL EXPENDITURE
-    # Handles:
-    # total expenditure
-    # my total expenditure
-    # what are my total expenditure
-    # how much have we spent
-    # total spent
-    # ----------------------------------------
 
-    total_phrases = [
-        "total expenditure",
-        "total expense",
-        "total expenses",
-        "total spent",
-        "total spending",
-        "overall expenditure",
-        "overall expense",
-        "overall spending",
-        "how much have we spent",
-        "how much did we spend",
-        "how much we spent"
-    ]
-
-    if any(
-        phrase in q
-        for phrase in total_phrases
-    ) and "month" not in q and "today" not in q:
+    if (
+        "total expenditure" in q
+        or "total spent" in q
+        or "total spending" in q
+    ):
 
         answer = (
             "Total approved expenditure is "
-            f"₹{summary_data['total_expenditure']:,.2f} "
-            f"across "
-            f"{summary_data['approved_payments']} "
-            f"approved payment(s)."
+            f"₹{summary_data['total_expenditure']:,.2f}."
         )
 
-    # ----------------------------------------
-    # THIS MONTH
-    # ----------------------------------------
+    # MONTH
 
     elif (
         "this month" in q
-        or
-        "monthly expenditure" in q
-        or
-        "month expenditure" in q
-        or
-        "monthly expense" in q
+        or "month expenditure" in q
     ):
 
         answer = (
@@ -1199,23 +1017,15 @@ async def ask_agent(payload: dict):
             f"₹{summary_data['this_month']:,.2f}."
         )
 
-    # ----------------------------------------
     # TODAY
-    # ----------------------------------------
 
     elif (
         "today" in q
         and
         (
             "spend" in q
-            or
-            "spent" in q
-            or
-            "expenditure" in q
-            or
-            "expense" in q
-            or
-            "paid" in q
+            or "expenditure" in q
+            or "paid" in q
         )
     ):
 
@@ -1224,61 +1034,7 @@ async def ask_agent(payload: dict):
             f"₹{summary_data['today']:,.2f}."
         )
 
-    # ----------------------------------------
-    # APPROVED PAYMENT COUNT
-    # ----------------------------------------
-
-    elif (
-        "approved payment" in q
-        or
-        "how many payment" in q
-        or
-        "number of payment" in q
-    ):
-
-        answer = (
-            "There are "
-            f"{summary_data['approved_payments']} "
-            "approved payment(s)."
-        )
-
-    # ----------------------------------------
-    # NEEDS REVIEW
-    # ----------------------------------------
-
-    elif (
-        "needs review" in q
-        or
-        "need review" in q
-        or
-        "review payment" in q
-    ):
-
-        answer = (
-            "There are "
-            f"{summary_data['needs_review']} "
-            "payment(s) waiting for manual review."
-        )
-
-    # ----------------------------------------
-    # PENDING AI
-    # ----------------------------------------
-
-    elif (
-        "pending ai" in q
-        or
-        "pending payment" in q
-    ):
-
-        answer = (
-            "There are "
-            f"{summary_data['pending_ai']} "
-            "screenshot(s) waiting for AI processing."
-        )
-
-    # ----------------------------------------
     # HIGHEST PROJECT
-    # ----------------------------------------
 
     elif (
         "highest" in q
@@ -1312,9 +1068,7 @@ async def ask_agent(payload: dict):
                 "project expenses yet."
             )
 
-    # ----------------------------------------
-    # PROJECT MATCHING
-    # ----------------------------------------
+    # PROJECT SEARCH
 
     if answer is None:
 
@@ -1331,16 +1085,14 @@ async def ask_agent(payload: dict):
             ):
 
                 answer = (
-                    "Approved expenditure for "
+                    f"Approved expenditure for "
                     f"{project} is "
                     f"₹{amount:,.2f}."
                 )
 
                 break
 
-    # ----------------------------------------
-    # CATEGORY MATCHING
-    # ----------------------------------------
+    # CATEGORY SEARCH
 
     if answer is None:
 
@@ -1357,16 +1109,14 @@ async def ask_agent(payload: dict):
             ):
 
                 answer = (
-                    "Approved expenditure for "
+                    f"Approved expenditure for "
                     f"{category} is "
                     f"₹{amount:,.2f}."
                 )
 
                 break
 
-    # ----------------------------------------
-    # PAYEE MATCHING
-    # ----------------------------------------
+    # PAYEE SEARCH
 
     if answer is None:
 
@@ -1377,7 +1127,6 @@ async def ask_agent(payload: dict):
             payee = (
                 payment["paid_to"]
                 .lower()
-                .strip()
             )
 
             if (
@@ -1385,7 +1134,6 @@ async def ask_agent(payload: dict):
                 and
                 payee in q
             ):
-
                 matching.append(
                     payment
                 )
@@ -1400,44 +1148,31 @@ async def ask_agent(payload: dict):
             answer = (
                 f"There are {len(matching)} "
                 "approved payment(s) matching "
-                "that payee, totaling "
+                f"that payee, totaling "
                 f"₹{amount:,.2f}."
             )
 
-    # ----------------------------------------
-    # FALLBACK
-    # ----------------------------------------
+    # SAFE FALLBACK
 
     if answer is None:
 
         answer = (
-            "I could not safely match that question "
-            "to the accounting records yet. "
-            "Try asking about total expenditure, "
-            "this month, today, a project, category, "
-            "supplier, approved payments, "
-            "Needs Review, or Pending AI."
+            "I could not answer that safely "
+            "from the current accounting rules. "
+            "No financial data was guessed."
         )
 
     return {
-
-        "success":
-            True,
-
-        "question":
-            question,
-
-        "answer":
-            answer,
-
-        "source":
-            "GCGW live Excel records"
+        "success": True,
+        "question": question,
+        "answer": answer,
+        "source": "GCGW Excel records"
     }
 
 
-# ============================================
-# START
-# ============================================
+# ============================================================
+# START SERVER
+# ============================================================
 
 if __name__ == "__main__":
 
