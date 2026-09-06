@@ -1,4 +1,3 @@
-
 import json
 import hashlib
 from pathlib import Path
@@ -15,15 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 UPLOAD_DIR = BASE_DIR / "uploads"
 
-WORKBOOK_FILE = (
-    DATA_DIR /
-    "GCGW_Payment_Management.xlsx"
-)
-
-PENDING_FILE = (
-    DATA_DIR /
-    "pending_ai_queue.json"
-)
+WORKBOOK_FILE = DATA_DIR / "GCGW_Payment_Management.xlsx"
+PENDING_FILE = DATA_DIR / "pending_ai_queue.json"
 
 DATA_DIR.mkdir(
     parents=True,
@@ -41,7 +33,6 @@ UPLOAD_DIR.mkdir(
 # ============================================
 
 def clean(value):
-
     if value is None:
         return ""
 
@@ -49,12 +40,10 @@ def clean(value):
 
 
 def normalized(value):
-
     return clean(value).lower()
 
 
 def amount_value(value):
-
     try:
         return float(value or 0)
 
@@ -63,9 +52,7 @@ def amount_value(value):
 
 
 def load_book():
-
     if not WORKBOOK_FILE.exists():
-
         raise FileNotFoundError(
             "GCGW workbook not found."
         )
@@ -76,7 +63,6 @@ def load_book():
 
 
 def save_book(workbook):
-
     workbook.save(
         WORKBOOK_FILE
     )
@@ -90,9 +76,7 @@ def payment_fingerprint(payment):
 
     raw = "|".join([
         normalized(
-            payment.get(
-                "transaction_id"
-            )
+            payment.get("transaction_id")
         ),
 
         str(
@@ -105,15 +89,11 @@ def payment_fingerprint(payment):
         ),
 
         normalized(
-            payment.get(
-                "payment_date"
-            )
+            payment.get("payment_date")
         ),
 
         normalized(
-            payment.get(
-                "paid_to"
-            )
+            payment.get("paid_to")
         )
     ])
 
@@ -131,9 +111,7 @@ def check_duplicate(payment):
     workbook = load_book()
 
     transaction_id = normalized(
-        payment.get(
-            "transaction_id"
-        )
+        payment.get("transaction_id")
     )
 
     amount = round(
@@ -144,21 +122,17 @@ def check_duplicate(payment):
     )
 
     payment_date = normalized(
-        payment.get(
-            "payment_date"
-        )
+        payment.get("payment_date")
     )
 
     paid_to = normalized(
-        payment.get(
-            "paid_to"
-        )
+        payment.get("paid_to")
     )
 
 
-    # ----------------------------------------
+    # ========================================
     # CHECK APPROVED PAYMENTS
-    # ----------------------------------------
+    # ========================================
 
     approved = workbook[
         "All Payments"
@@ -177,6 +151,11 @@ def check_duplicate(payment):
         if not internal_id:
             continue
 
+
+        # ------------------------------------
+        # Transaction/reference ID duplicate
+        # ------------------------------------
+
         existing_reference = normalized(
             approved.cell(
                 row,
@@ -189,20 +168,22 @@ def check_duplicate(payment):
             and
             existing_reference
             and
-            transaction_id
-            == existing_reference
+            transaction_id == existing_reference
         ):
 
             return {
                 "duplicate": True,
-                "location":
-                    "All Payments",
+                "location": "All Payments",
                 "row": row,
                 "reason":
                     "Transaction/reference ID "
-                    "already exists."
+                    "already exists in approved payments."
             }
 
+
+        # ------------------------------------
+        # Amount + date + payee duplicate
+        # ------------------------------------
 
         existing_amount = round(
             amount_value(
@@ -244,18 +225,17 @@ def check_duplicate(payment):
 
             return {
                 "duplicate": True,
-                "location":
-                    "All Payments",
+                "location": "All Payments",
                 "row": row,
                 "reason":
                     "Same amount, date and payee "
-                    "already exist."
+                    "already exist in approved payments."
             }
 
 
-    # ----------------------------------------
+    # ========================================
     # CHECK NEEDS REVIEW
-    # ----------------------------------------
+    # ========================================
 
     review = workbook[
         "Needs Review"
@@ -276,6 +256,7 @@ def check_duplicate(payment):
         if not review_id:
             continue
 
+
         decision = normalized(
             review.cell(
                 row,
@@ -283,12 +264,26 @@ def check_duplicate(payment):
             ).value
         )
 
+
+        # ====================================
+        # IMPORTANT FIX
+        #
+        # Ignore completed rows AND the row
+        # currently being approved.
+        # ====================================
+
         if decision in {
             "approved",
             "rejected",
-            "deleted"
+            "deleted",
+            "approval in progress"
         }:
             continue
+
+
+        # ------------------------------------
+        # Transaction ID duplicate
+        # ------------------------------------
 
         if (
             transaction_id
@@ -304,14 +299,17 @@ def check_duplicate(payment):
 
             return {
                 "duplicate": True,
-                "location":
-                    "Needs Review",
+                "location": "Needs Review",
                 "row": row,
                 "reason":
                     "Transaction already exists "
                     "in Needs Review."
             }
 
+
+        # ------------------------------------
+        # Amount + date + payee duplicate
+        # ------------------------------------
 
         review_amount = round(
             amount_value(
@@ -353,8 +351,7 @@ def check_duplicate(payment):
 
             return {
                 "duplicate": True,
-                "location":
-                    "Needs Review",
+                "location": "Needs Review",
                 "row": row,
                 "reason":
                     "Same amount, date and payee "
@@ -399,7 +396,8 @@ def add_approved_payment(
     ]
 
 
-    # Find first truly empty transaction row.
+    # Find first truly empty row
+
     row = 2
 
     while sheet.cell(
@@ -419,10 +417,9 @@ def add_approved_payment(
         )
     )
 
-    fingerprint = (
-        payment_fingerprint(
-            payment
-        )
+
+    fingerprint = payment_fingerprint(
+        payment
     )
 
 
@@ -462,6 +459,7 @@ def add_approved_payment(
         workbook
     )
 
+
     return {
         "success": True,
         "status": "APPROVED",
@@ -499,6 +497,7 @@ def add_to_review(
         "Needs Review"
     ]
 
+
     row = 2
 
     while sheet.cell(
@@ -515,13 +514,17 @@ def add_to_review(
         )
     )
 
+
+    # ----------------------------------------
+    # Create temporary ID if AI could not
+    # detect transaction/reference ID
+    # ----------------------------------------
+
     if not transaction_id:
 
-        fingerprint = (
-            payment_fingerprint(
-                payment
-            )[:12]
-        )
+        fingerprint = payment_fingerprint(
+            payment
+        )[:12]
 
         transaction_id = (
             "PENDING-"
@@ -533,11 +536,13 @@ def add_to_review(
         problems or []
     )
 
+
     ai_reason = clean(
         payment.get(
             "review_reason"
         )
     )
+
 
     if (
         ai_reason
@@ -549,6 +554,7 @@ def add_to_review(
             ai_reason
         )
 
+
     reason_text = (
         "; ".join(reasons)
         if reasons
@@ -556,7 +562,10 @@ def add_to_review(
     )
 
 
-    # Original 8 columns
+    # ========================================
+    # ORIGINAL REVIEW COLUMNS
+    # ========================================
+
     sheet.cell(
         row,
         1
@@ -608,8 +617,9 @@ def add_to_review(
     ).value = "Pending"
 
 
-    # Extra audit columns for web version
-    # These do not disturb the original 8 columns.
+    # ========================================
+    # EXTRA AUDIT COLUMNS
+    # ========================================
 
     sheet.cell(
         row,
@@ -656,12 +666,12 @@ def add_to_review(
         workbook
     )
 
+
     return {
         "success": True,
         "status": "NEEDS_REVIEW",
         "row": row,
-        "transaction_id":
-            transaction_id
+        "transaction_id": transaction_id
     }
 
 
@@ -712,7 +722,9 @@ def add_pending_ai(
 
     queue = load_pending_queue()
 
-    # Avoid adding same stored file twice.
+
+    # Avoid storing same file twice
+
     for item in queue:
 
         if (
@@ -731,18 +743,11 @@ def add_pending_ai(
 
 
     queue.append({
-        "filename":
-            screenshot_filename,
-
-        "status":
-            "Pending",
-
-        "error":
-            clean(error),
-
+        "filename": screenshot_filename,
+        "status": "Pending",
+        "error": clean(error),
         "added_at":
-            datetime.now()
-            .isoformat(
+            datetime.now().isoformat(
                 timespec="seconds"
             )
     })
@@ -751,6 +756,7 @@ def add_pending_ai(
     save_pending_queue(
         queue
     )
+
 
     return {
         "success": True,
@@ -772,6 +778,7 @@ def process_extracted_payment(
     duplicate = check_duplicate(
         payment
     )
+
 
     if duplicate["duplicate"]:
 
@@ -820,7 +827,7 @@ def process_extracted_payment(
 
 
 # ============================================
-# APPROVE A NEEDS-REVIEW PAYMENT
+# APPROVE NEEDS REVIEW PAYMENT
 # ============================================
 
 def approve_review_payment(
@@ -833,6 +840,11 @@ def approve_review_payment(
     review_sheet = workbook[
         "Needs Review"
     ]
+
+
+    # ========================================
+    # VALIDATE ROW
+    # ========================================
 
     if (
         review_row < 2
@@ -854,6 +866,7 @@ def approve_review_payment(
         ).value
     )
 
+
     if current_decision in {
         "approved",
         "rejected",
@@ -869,9 +882,9 @@ def approve_review_payment(
         }
 
 
-    # ----------------------------------------
+    # ========================================
     # EXISTING REVIEW DATA
-    # ----------------------------------------
+    # ========================================
 
     old_transaction_id = clean(
         review_sheet.cell(
@@ -879,6 +892,7 @@ def approve_review_payment(
             1
         ).value
     )
+
 
     screenshot_filename = clean(
         review_sheet.cell(
@@ -888,9 +902,9 @@ def approve_review_payment(
     )
 
 
-    # ----------------------------------------
-    # BUILD CORRECTED PAYMENT
-    # ----------------------------------------
+    # ========================================
+    # TRANSACTION ID
+    # ========================================
 
     transaction_id = clean(
         corrections.get(
@@ -898,22 +912,32 @@ def approve_review_payment(
         )
     )
 
+
     if not transaction_id:
 
-        transaction_id = old_transaction_id
+        transaction_id = (
+            old_transaction_id
+        )
 
 
-    # PENDING IDs are internal placeholders,
-    # not real transaction/reference IDs.
+    # PENDING IDs are generated internally
+    # and cannot be approved as real IDs.
 
     if normalized(
         transaction_id
-    ).startswith("pending-"):
+    ).startswith(
+        "pending-"
+    ):
 
         transaction_id = ""
 
 
+    # ========================================
+    # BUILD CORRECTED PAYMENT
+    # ========================================
+
     payment = {
+
         "amount":
             amount_value(
                 corrections.get(
@@ -1024,28 +1048,33 @@ def approve_review_payment(
                 ).value
             ),
 
-        "needs_review":
-            False,
+        "needs_review": False,
 
-        "review_reason":
-            None
+        "review_reason": None
     }
 
 
-    # ----------------------------------------
+    # ========================================
     # STRICT VALIDATION
-    # ----------------------------------------
+    # ========================================
 
     missing = []
 
+
     if payment["amount"] <= 0:
-        missing.append("amount")
+        missing.append(
+            "amount"
+        )
 
     if not payment["paid_to"]:
-        missing.append("paid_to")
+        missing.append(
+            "paid_to"
+        )
 
     if not payment["payment_date"]:
-        missing.append("payment_date")
+        missing.append(
+            "payment_date"
+        )
 
     if not payment["transaction_id"]:
         missing.append(
@@ -1053,10 +1082,14 @@ def approve_review_payment(
         )
 
     if not payment["project"]:
-        missing.append("project")
+        missing.append(
+            "project"
+        )
 
     if not payment["category"]:
-        missing.append("category")
+        missing.append(
+            "category"
+        )
 
 
     if missing:
@@ -1071,12 +1104,12 @@ def approve_review_payment(
         }
 
 
-    # ----------------------------------------
-    # DUPLICATE CHECK
+    # ========================================
+    # TEMPORARILY MARK CURRENT ROW
     #
-    # Temporarily mark this review row so the
-    # duplicate checker does not match itself.
-    # ----------------------------------------
+    # This prevents duplicate detection from
+    # matching the transaction against itself.
+    # ========================================
 
     original_decision = (
         review_sheet.cell(
@@ -1085,20 +1118,60 @@ def approve_review_payment(
         ).value
     )
 
+
     review_sheet.cell(
         review_row,
         8
     ).value = "Approval In Progress"
 
-    save_book(workbook)
 
-
-    duplicate = check_duplicate(
-        payment
+    save_book(
+        workbook
     )
 
 
-    # Restore row if duplicate exists.
+    # ========================================
+    # DUPLICATE CHECK
+    # ========================================
+
+    try:
+
+        duplicate = check_duplicate(
+            payment
+        )
+
+    except Exception as error:
+
+        # Restore review status if duplicate
+        # checking itself fails.
+
+        workbook = load_book()
+
+        review_sheet = workbook[
+            "Needs Review"
+        ]
+
+        review_sheet.cell(
+            review_row,
+            8
+        ).value = original_decision
+
+        save_book(
+            workbook
+        )
+
+        return {
+            "success": False,
+            "status": "FAILED",
+            "error":
+                "Duplicate check failed: "
+                + str(error)
+        }
+
+
+    # ========================================
+    # REAL DUPLICATE FOUND
+    # ========================================
 
     if duplicate["duplicate"]:
 
@@ -1113,7 +1186,9 @@ def approve_review_payment(
             8
         ).value = original_decision
 
-        save_book(workbook)
+        save_book(
+            workbook
+        )
 
         return {
             "success": False,
@@ -1126,9 +1201,9 @@ def approve_review_payment(
         }
 
 
-    # ----------------------------------------
-    # WRITE TO ALL PAYMENTS DIRECTLY
-    # ----------------------------------------
+    # ========================================
+    # WRITE APPROVED PAYMENT
+    # ========================================
 
     workbook = load_book()
 
@@ -1143,6 +1218,7 @@ def approve_review_payment(
 
     target_row = 2
 
+
     while approved_sheet.cell(
         target_row,
         1
@@ -1153,6 +1229,7 @@ def approve_review_payment(
 
     now = datetime.now()
 
+
     internal_id = (
         "GCGW-"
         + now.strftime(
@@ -1162,21 +1239,60 @@ def approve_review_payment(
 
 
     values = [
+
         internal_id,
-        payment["payment_date"],
-        payment["payment_time"],
-        payment["amount"],
-        payment["paid_to"],
-        payment["project"],
-        payment["category"],
-        payment["purpose"],
-        payment["payment_mode"],
-        payment["payment_app"],
-        payment["transaction_id"],
+
+        payment[
+            "payment_date"
+        ],
+
+        payment[
+            "payment_time"
+        ],
+
+        payment[
+            "amount"
+        ],
+
+        payment[
+            "paid_to"
+        ],
+
+        payment[
+            "project"
+        ],
+
+        payment[
+            "category"
+        ],
+
+        payment[
+            "purpose"
+        ],
+
+        payment[
+            "payment_mode"
+        ],
+
+        payment[
+            "payment_app"
+        ],
+
+        payment[
+            "transaction_id"
+        ],
+
         screenshot_filename,
-        payment["confidence"],
+
+        payment[
+            "confidence"
+        ],
+
         "Approved",
-        payment_fingerprint(payment)
+
+        payment_fingerprint(
+            payment
+        )
     ]
 
 
@@ -1191,9 +1307,9 @@ def approve_review_payment(
         ).value = value
 
 
-    # ----------------------------------------
-    # MARK REVIEW ROW APPROVED
-    # ----------------------------------------
+    # ========================================
+    # MARK REVIEW RECORD APPROVED
+    # ========================================
 
     review_sheet.cell(
         review_row,
@@ -1201,7 +1317,9 @@ def approve_review_payment(
     ).value = "Approved"
 
 
-    # Keep corrected values for audit history.
+    # ========================================
+    # SAVE CORRECTED REVIEW VALUES
+    # ========================================
 
     review_sheet.cell(
         review_row,
@@ -1274,7 +1392,13 @@ def approve_review_payment(
     ]
 
 
-    save_book(workbook)
+    # ========================================
+    # SAVE EVERYTHING
+    # ========================================
+
+    save_book(
+        workbook
+    )
 
 
     return {
@@ -1284,4 +1408,3 @@ def approve_review_payment(
         "approved_row": target_row,
         "review_row": review_row
     }
-
