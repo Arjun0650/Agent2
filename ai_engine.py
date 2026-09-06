@@ -1,5 +1,4 @@
 import os
-import time
 import json
 import re
 from pathlib import Path
@@ -8,21 +7,29 @@ from typing import Optional
 from PIL import Image
 from pydantic import BaseModel, Field
 from google import genai
+from google.genai import types
 
 
-# ============================================
+# ============================================================
 # CONFIGURATION
-# ============================================
+# ============================================================
 
 MODEL_NAME = os.environ.get(
     "GEMINI_MODEL",
     "gemini-3.6-flash"
 )
 
+# Maximum time Gemini is allowed to take.
+# After this, the request fails instead of hanging.
+GEMINI_TIMEOUT_MS = 15000
 
-# ============================================
+# Resize large screenshots before sending.
+MAX_IMAGE_SIDE = 1400
+
+
+# ============================================================
 # PAYMENT SCHEMA
-# ============================================
+# ============================================================
 
 class PaymentTransaction(BaseModel):
 
@@ -57,26 +64,24 @@ class PaymentTransaction(BaseModel):
     review_reason: Optional[str] = None
 
 
-# ============================================
-# RESULT SCHEMA
-# ============================================
+# ============================================================
+# EXTRACTION RESULT
+# ============================================================
 
 class ExtractionResult(BaseModel):
 
     success: bool
 
-    payment: Optional[
-        PaymentTransaction
-    ] = None
+    payment: Optional[PaymentTransaction] = None
 
     error: Optional[str] = None
 
     quota_error: bool = False
 
 
-# ============================================
-# HELPERS
-# ============================================
+# ============================================================
+# CLEANING HELPERS
+# ============================================================
 
 def clean_optional_text(value):
 
@@ -106,7 +111,10 @@ def normalize_amount(value):
     if value is None:
         return None
 
-    if isinstance(value, (int, float)):
+    if isinstance(
+        value,
+        (int, float)
+    ):
 
         amount = float(value)
 
@@ -146,6 +154,7 @@ def normalize_amount(value):
         )
 
     except ValueError:
+
         return None
 
 
@@ -166,13 +175,17 @@ def normalize_confidence(value):
             )
         )
 
-    except (TypeError, ValueError):
+    except (
+        TypeError,
+        ValueError
+    ):
+
         return None
 
 
-# ============================================
-# QUOTA DETECTION
-# ============================================
+# ============================================================
+# ERROR HELPERS
+# ============================================================
 
 def is_quota_error(error):
 
@@ -194,9 +207,9 @@ def is_quota_error(error):
     )
 
 
-# ============================================
-# CLIENT
-# ============================================
+# ============================================================
+# GEMINI CLIENT
+# ============================================================
 
 def get_client():
 
@@ -211,152 +224,138 @@ def get_client():
         )
 
     return genai.Client(
-        api_key=api_key
+        api_key=api_key,
+        http_options=types.HttpOptions(
+            timeout=GEMINI_TIMEOUT_MS
+        )
     )
 
 
-# ============================================
-# EXTRACTION PROMPT
-# ============================================
+# ============================================================
+# FAST PAYMENT PROMPT
+# ============================================================
 
 PAYMENT_PROMPT = """
-You are the payment screenshot reading assistant
-for Gopal Chavan Guniting Work (GCGW).
+Read this payment screenshot for GCGW.
 
-Your job is to read the screenshot and extract
-AS MUCH REAL INFORMATION AS POSSIBLE.
+Extract only information that is actually visible.
 
-IMPORTANT:
+Return:
 
-A payment DOES NOT need to have every field
-available.
+amount
+paid_to
+payment_date
+payment_time
+transaction_id
+payment_mode
+payment_app
+purpose
+project
+category
+confidence
+needs_review
+review_reason
 
-If you can identify only some fields, return
-those fields and leave the remaining fields null.
+Rules:
 
-For example:
+- Never invent financial information.
+- Missing information must be null.
+- Partial extraction is SUCCESS.
+- Do not fail because project, category or purpose are missing.
+- Do not guess project.
+- Do not guess category.
+- Do not guess purpose.
+- Preserve transaction / UTR / reference IDs exactly.
+- amount must be the transferred payment amount.
+- Do not mistake balances, cashback or rewards for the amount.
+- Prefer payment_date in YYYY-MM-DD format.
+- confidence must be from 0 to 100.
+- If anything important needs human confirmation,
+  set needs_review=true.
 
-If you can see:
+The payment will be manually reviewed before approval.
 
-Paid To: KEVIL
-Amount: ₹2,000
-Date: 02-09-2026
-Transaction ID: HDFCF2CF52605882
+Focus mainly on:
+amount,
+paid_to,
+payment_date,
+transaction_id,
+payment_app,
+payment_mode.
 
-but Project, Category and Purpose are not visible,
-you MUST still return the information you found.
-
-Do NOT fail the extraction merely because some
-fields are missing.
-
-Extract:
-
-- amount
-- paid_to
-- payment_date
-- payment_time
-- transaction_id
-- payment_mode
-- payment_app
-- purpose
-- project
-- category
-- confidence
-- needs_review
-- review_reason
-
-
-FINANCIAL SAFETY RULES:
-
-1. Never invent an amount.
-
-2. Never invent the recipient/payee.
-
-3. Never invent a transaction/reference ID.
-
-4. Never invent a date or time.
-
-5. Never guess the project.
-
-6. Never guess the category unless the screenshot
-   itself provides strong evidence.
-
-7. Never guess the purpose.
-
-8. Missing information must be returned as null.
-
-9. Missing project/category/purpose is NOT an AI
-   processing failure.
-
-10. A partially readable screenshot is considered
-    successfully processed.
-
-11. If any important field is missing or uncertain,
-    set needs_review = true.
-
-12. review_reason should clearly state which fields
-    require human confirmation.
-
-13. payment_date should preferably use YYYY-MM-DD.
-
-14. confidence must be between 0 and 100.
-
-15. For UPI payments, preserve the visible
-    transaction/reference/UTR number exactly.
-
-16. Do not confuse balances, rewards, cashback,
-    advertisements or account balances with the
-    payment amount.
-
-17. Read Google Pay, PhonePe, Paytm, UPI and bank
-    screenshots carefully.
-
-18. The recipient may appear near labels such as:
-    Paid to
-    To
-    Sent to
-    Recipient
-    Merchant
-    Beneficiary
-
-19. Transaction identifiers may appear as:
-    UPI transaction ID
-    UTR
-    Transaction ID
-    Reference ID
-    Bank reference
-    RRN
-
-20. Return every field that is actually readable,
-    even when other fields are unavailable.
-
-21. Accuracy is more important than filling every
-    field.
-
-22. Do not fabricate financial information.
-
-EXPECTED BEHAVIOR:
-
-Readable payment + missing project/category
-=
-SUCCESSFUL EXTRACTION + NEEDS REVIEW
-
-Readable payment + missing purpose
-=
-SUCCESSFUL EXTRACTION + NEEDS REVIEW
-
-Readable amount/payee but missing transaction ID
-=
-SUCCESSFUL EXTRACTION + NEEDS REVIEW
-
-Only genuine technical/API/image processing
-failure should result in extraction failure.
+Be fast and accurate.
 """
 
 
-# ============================================
-# CLEAN PAYMENT
-# ============================================
+# ============================================================
+# PREPARE IMAGE
+# ============================================================
+
+def prepare_image(image_path):
+
+    image_path = Path(
+        image_path
+    )
+
+    if not image_path.exists():
+
+        raise FileNotFoundError(
+            "Screenshot file does not exist."
+        )
+
+    with Image.open(
+        image_path
+    ) as opened_image:
+
+        opened_image.load()
+
+        if opened_image.mode != "RGB":
+
+            image = opened_image.convert(
+                "RGB"
+            )
+
+        else:
+
+            image = opened_image.copy()
+
+    width, height = image.size
+
+    largest_side = max(
+        width,
+        height
+    )
+
+    if largest_side > MAX_IMAGE_SIDE:
+
+        scale = (
+            MAX_IMAGE_SIDE
+            / largest_side
+        )
+
+        new_width = max(
+            1,
+            int(width * scale)
+        )
+
+        new_height = max(
+            1,
+            int(height * scale)
+        )
+
+        image = image.resize(
+            (
+                new_width,
+                new_height
+            )
+        )
+
+    return image
+
+
+# ============================================================
+# CLEAN GEMINI RESULT
+# ============================================================
 
 def clean_payment(payment):
 
@@ -367,7 +366,10 @@ def clean_payment(payment):
 
         data = payment.model_dump()
 
-    elif isinstance(payment, dict):
+    elif isinstance(
+        payment,
+        dict
+    ):
 
         data = dict(payment)
 
@@ -375,13 +377,9 @@ def clean_payment(payment):
 
         data = {}
 
-
-    data["amount"] = (
-        normalize_amount(
-            data.get("amount")
-        )
+    data["amount"] = normalize_amount(
+        data.get("amount")
     )
-
 
     for field_name in [
         "paid_to",
@@ -402,294 +400,311 @@ def clean_payment(payment):
             )
         )
 
-
     data["confidence"] = (
         normalize_confidence(
             data.get("confidence")
         )
     )
 
+    data["needs_review"] = True
 
     return PaymentTransaction(
         **data
     )
 
 
-# ============================================
-# ANALYZE ONE SCREENSHOT
-# ============================================
+# ============================================================
+# CHECK IF GEMINI FOUND SOMETHING USEFUL
+# ============================================================
 
-def analyze_payment_screenshot(
-    image_path,
-    max_attempts=1
-):
+def has_useful_data(payment):
 
-    image_path = Path(
-        image_path
+    values = [
+        payment.amount,
+        payment.paid_to,
+        payment.payment_date,
+        payment.payment_time,
+        payment.transaction_id,
+        payment.payment_mode,
+        payment.payment_app
+    ]
+
+    return any(
+        value not in {
+            None,
+            ""
+        }
+        for value in values
     )
 
 
-    # ----------------------------------------
-    # FILE CHECK
-    # ----------------------------------------
+# ============================================================
+# ANALYZE SCREENSHOT
+# ============================================================
 
-    if not image_path.exists():
+def analyze_payment_screenshot(
+    image_path
+):
 
-        return ExtractionResult(
-            success=False,
-            error=(
-                "Screenshot file does not exist."
-            )
-        )
-
-
-    # ----------------------------------------
-    # IMAGE CHECK
-    # ----------------------------------------
+    # --------------------------------------------------------
+    # IMAGE
+    # --------------------------------------------------------
 
     try:
 
-        with Image.open(
+        image = prepare_image(
             image_path
-        ) as opened_image:
+        )
 
-            opened_image.load()
-
-            # Convert to RGB for consistent
-            # Gemini image processing.
-
-            if opened_image.mode != "RGB":
-
-                image = (
-                    opened_image
-                    .convert("RGB")
-                )
-
-            else:
-
-                image = (
-                    opened_image
-                    .copy()
-                )
-
-    except Exception as e:
+    except Exception as error:
 
         return ExtractionResult(
             success=False,
             error=(
-                "Invalid image: "
-                + str(e)
+                "Image error: "
+                + str(error)
             )
         )
 
-
-    # ----------------------------------------
-    # GEMINI CLIENT
-    # ----------------------------------------
+    # --------------------------------------------------------
+    # CLIENT
+    # --------------------------------------------------------
 
     try:
 
         client = get_client()
 
-    except Exception as e:
+    except Exception as error:
 
         return ExtractionResult(
             success=False,
-            error=str(e)
+            error=str(error)
         )
 
+    # --------------------------------------------------------
+    # EXACTLY ONE GEMINI REQUEST
+    # --------------------------------------------------------
 
-    last_error = None
+    try:
 
+        response = (
+            client.models.generate_content(
+                model=MODEL_NAME,
 
-    # ----------------------------------------
-    # GEMINI RETRIES
-    # ----------------------------------------
+                contents=[
+                    PAYMENT_PROMPT,
+                    image
+                ],
 
-    for attempt in range(
-        1,
-        max_attempts + 1
-    ):
-
-        try:
-
-            response = (
-                client.models.generate_content(
-                    model=MODEL_NAME,
-
-                    contents=[
-                        PAYMENT_PROMPT,
-                        image
-                    ],
-
-                    config={
-                        "response_mime_type":
-                            "application/json",
-
-                        "response_schema":
-                            PaymentTransaction
-                    }
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=PaymentTransaction,
+                    temperature=0
                 )
             )
+        )
 
+        payment = None
 
-            payment = None
+        # ----------------------------------------------------
+        # PARSED STRUCTURED RESPONSE
+        # ----------------------------------------------------
 
+        parsed = getattr(
+            response,
+            "parsed",
+            None
+        )
 
-            # =================================
-            # STRUCTURED RESPONSE
-            # =================================
+        if parsed is not None:
 
-            parsed = getattr(
+            if isinstance(
+                parsed,
+                PaymentTransaction
+            ):
+
+                payment = parsed
+
+            else:
+
+                payment = (
+                    PaymentTransaction
+                    .model_validate(
+                        parsed
+                    )
+                )
+
+        # ----------------------------------------------------
+        # JSON FALLBACK
+        # ----------------------------------------------------
+
+        if payment is None:
+
+            response_text = getattr(
                 response,
-                "parsed",
+                "text",
                 None
             )
 
-            if parsed is not None:
+            if response_text:
 
-                if isinstance(
-                    parsed,
-                    PaymentTransaction
-                ):
+                try:
 
-                    payment = parsed
+                    payment = (
+                        PaymentTransaction
+                        .model_validate_json(
+                            response_text
+                        )
+                    )
 
-                else:
+                except Exception:
+
+                    raw_data = json.loads(
+                        response_text
+                    )
 
                     payment = (
                         PaymentTransaction
                         .model_validate(
-                            parsed
+                            raw_data
                         )
                     )
 
-
-            # =================================
-            # JSON TEXT FALLBACK
-            # =================================
-
-            if payment is None:
-
-                response_text = getattr(
-                    response,
-                    "text",
-                    None
-                )
-
-                if response_text:
-
-                    try:
-
-                        payment = (
-                            PaymentTransaction
-                            .model_validate_json(
-                                response_text
-                            )
-                        )
-
-                    except Exception:
-
-                        raw_data = (
-                            json.loads(
-                                response_text
-                            )
-                        )
-
-                        payment = (
-                            PaymentTransaction
-                            .model_validate(
-                                raw_data
-                            )
-                        )
-
-
-            # =================================
-            # NOTHING RETURNED
-            # =================================
-
-            if payment is None:
-
-                raise RuntimeError(
-                    "Gemini returned no readable "
-                    "payment information."
-                )
-
-
-            # =================================
-            # CLEAN VALUES
-            # =================================
-
-            payment = clean_payment(
-                payment
-            )
-
-
-            # =================================
-            # IMPORTANT
-            #
-            # Partial extraction is SUCCESS.
-            # =================================
+        if payment is None:
 
             return ExtractionResult(
-                success=True,
-                payment=payment,
-                quota_error=False
+                success=False,
+                error=(
+                    "Gemini returned no "
+                    "payment information."
+                )
             )
 
-
-        except Exception as e:
-
-            last_error = str(e)
-
-
-            # =================================
-            # QUOTA / RATE LIMIT
-            # =================================
-
-            if is_quota_error(e):
-
-                return ExtractionResult(
-                    success=False,
-                    error=last_error,
-                    quota_error=True
-                )
-
-
-            # =================================
-            # TEMPORARY ERROR RETRY
-            # =================================
-
-            if attempt < max_attempts:
-
-                time.sleep(
-                    attempt * 2
-                )
-
-
-    # ----------------------------------------
-    # ALL ATTEMPTS FAILED
-    # ----------------------------------------
-
-    return ExtractionResult(
-        success=False,
-        error=(
-            last_error
-            or
-            "Unknown Gemini extraction error."
+        payment = clean_payment(
+            payment
         )
-    )
+
+        # ----------------------------------------------------
+        # IF GEMINI READ AT LEAST SOMETHING,
+        # IT IS A SUCCESS
+        # ----------------------------------------------------
+
+        if not has_useful_data(
+            payment
+        ):
+
+            return ExtractionResult(
+                success=False,
+                error=(
+                    "Gemini could not detect "
+                    "useful payment information."
+                )
+            )
+
+        # ----------------------------------------------------
+        # BUILD REVIEW REASON LOCALLY
+        # ----------------------------------------------------
+
+        missing = []
+
+        if payment.amount is None:
+
+            missing.append(
+                "amount"
+            )
+
+        if not payment.paid_to:
+
+            missing.append(
+                "payee"
+            )
+
+        if not payment.payment_date:
+
+            missing.append(
+                "date"
+            )
+
+        if not payment.transaction_id:
+
+            missing.append(
+                "transaction ID"
+            )
+
+        if not payment.project:
+
+            missing.append(
+                "project"
+            )
+
+        if not payment.category:
+
+            missing.append(
+                "category"
+            )
+
+        if not payment.purpose:
+
+            missing.append(
+                "purpose"
+            )
+
+        payment.needs_review = True
+
+        if missing:
+
+            payment.review_reason = (
+                "Manual confirmation required: "
+                + ", ".join(missing)
+            )
+
+        else:
+
+            payment.review_reason = (
+                "Manual approval required."
+            )
+
+        return ExtractionResult(
+            success=True,
+            payment=payment,
+            quota_error=False
+        )
+
+    # --------------------------------------------------------
+    # GEMINI ERROR
+    # --------------------------------------------------------
+
+    except Exception as error:
+
+        error_text = str(error)
+
+        print(
+            "[GEMINI ERROR]",
+            error_text,
+            flush=True
+        )
+
+        return ExtractionResult(
+            success=False,
+            error=error_text,
+            quota_error=is_quota_error(
+                error
+            )
+        )
 
 
-# ============================================
-# VALIDATE EXTRACTED PAYMENT
-# ============================================
+# ============================================================
+# VALIDATE PAYMENT
+# ============================================================
 
 def validate_extracted_payment(
     payment
 ):
 
-    if isinstance(payment, dict):
+    if isinstance(
+        payment,
+        dict
+    ):
 
         payment = (
             PaymentTransaction
@@ -698,24 +713,20 @@ def validate_extracted_payment(
             )
         )
 
-
     problems = []
 
-
-    # ========================================
-    # BASIC PAYMENT DATA
-    # ========================================
+    # --------------------------------------------------------
+    # PAYMENT DETAILS
+    # --------------------------------------------------------
 
     if (
         payment.amount is None
-        or
-        payment.amount <= 0
+        or payment.amount <= 0
     ):
 
         problems.append(
             "Amount requires confirmation"
         )
-
 
     if not payment.paid_to:
 
@@ -723,25 +734,21 @@ def validate_extracted_payment(
             "Payee requires confirmation"
         )
 
-
     if not payment.payment_date:
 
         problems.append(
             "Payment date requires confirmation"
         )
 
-
     if not payment.transaction_id:
 
         problems.append(
-            "Transaction/reference ID "
-            "requires confirmation"
+            "Transaction/reference ID requires confirmation"
         )
 
-
-    # ========================================
-    # GCGW ACCOUNTING DATA
-    # ========================================
+    # --------------------------------------------------------
+    # GCGW DETAILS
+    # --------------------------------------------------------
 
     if not payment.project:
 
@@ -749,60 +756,28 @@ def validate_extracted_payment(
             "Project requires confirmation"
         )
 
-
     if not payment.category:
 
         problems.append(
             "Category requires confirmation"
         )
 
-
     if not payment.purpose:
 
         problems.append(
-            "Purpose / remark can be "
-            "confirmed manually"
+            "Purpose / remark requires confirmation"
         )
-
-
-    # ========================================
-    # GEMINI REVIEW REQUEST
-    # ========================================
-
-    if payment.needs_review:
-
-        reason = clean_optional_text(
-            payment.review_reason
-        )
-
-        if (
-            reason
-            and
-            reason not in problems
-        ):
-
-            problems.append(
-                reason
-            )
-
-
-    # ========================================
-    # CONFIDENCE
-    # ========================================
 
     if (
         payment.confidence is not None
-        and
-        payment.confidence < 70
+        and payment.confidence < 70
     ):
 
         problems.append(
             "AI confidence is below 70%"
         )
 
-
-    # Remove duplicate messages while
-    # preserving order.
+    # Remove duplicates
 
     unique_problems = []
 
@@ -814,29 +789,25 @@ def validate_extracted_payment(
                 problem
             )
 
+    # ========================================================
+    # IMPORTANT:
+    #
+    # EVERY SCREENSHOT GOES TO NEEDS REVIEW.
+    # IT SHOULD NOT WAIT FOR PERFECT AI DATA.
+    # ========================================================
 
     return {
-
-        # Automatically approve ONLY when
-        # there is nothing requiring review.
-
-        "valid":
-            len(unique_problems) == 0,
-
-        "needs_review":
-            len(unique_problems) > 0,
-
-        "problems":
-            unique_problems,
-
+        "valid": True,
+        "needs_review": True,
+        "problems": unique_problems,
         "partial_extraction":
             len(unique_problems) > 0
     }
 
 
-# ============================================
-# PUBLIC WEB EXTRACTION FUNCTION
-# ============================================
+# ============================================================
+# FUNCTION USED BY APP.PY
+# ============================================================
 
 def extract_payment_for_web(
     image_path
@@ -848,35 +819,27 @@ def extract_payment_for_web(
         )
     )
 
-
-    # ========================================
-    # REAL AI / TECHNICAL FAILURE
-    # ========================================
+    # --------------------------------------------------------
+    # TRUE TECHNICAL FAILURE
+    # --------------------------------------------------------
 
     if not result.success:
 
         return {
-
             "success": False,
-
             "payment": None,
-
             "validation": None,
-
             "quota_error":
                 result.quota_error,
-
             "error":
                 result.error
         }
 
+    # --------------------------------------------------------
+    # GEMINI READ SOMETHING
+    # --------------------------------------------------------
 
     payment = result.payment
-
-
-    # ========================================
-    # VALIDATE PARTIAL DATA
-    # ========================================
 
     validation = (
         validate_extracted_payment(
@@ -884,19 +847,7 @@ def extract_payment_for_web(
         )
     )
 
-
-    # ========================================
-    # IMPORTANT:
-    #
-    # Even if fields are missing,
-    # success remains TRUE.
-    #
-    # app.py/payment_engine.py can therefore
-    # send the record to Needs Review.
-    # ========================================
-
     return {
-
         "success": True,
 
         "payment":
@@ -909,10 +860,7 @@ def extract_payment_for_web(
             False,
 
         "partial_extraction":
-            validation.get(
-                "needs_review",
-                False
-            ),
+            True,
 
         "error":
             None
