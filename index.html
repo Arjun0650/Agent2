@@ -1,0 +1,1740 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>GCGW Payment Management</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --navy: #071b36;
+            --navy-light: #102c50;
+            --blue: #1f5f99;
+            --background: #f4f7fb;
+            --white: #ffffff;
+            --text: #1b2635;
+            --muted: #6c7887;
+            --border: #e1e7ef;
+            --green: #198754;
+            --orange: #d97706;
+            --red: #c0392b;
+        }
+
+        body {
+            font-family:
+                Inter,
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: var(--background);
+            color: var(--text);
+        }
+
+        /* ============================
+           SIDEBAR
+        ============================ */
+
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+
+            position: fixed;
+            left: 0;
+            top: 0;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #071b36,
+                    #0b2748
+                );
+
+            color: white;
+            padding: 28px 18px;
+        }
+
+        .brand {
+            padding: 0 10px 30px;
+            border-bottom:
+                1px solid rgba(255,255,255,.12);
+        }
+
+        .brand-badge {
+            width: 50px;
+            height: 50px;
+
+            border-radius: 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: white;
+            color: var(--navy);
+
+            font-size: 20px;
+            font-weight: 800;
+
+            margin-bottom: 14px;
+        }
+
+        .brand h2 {
+            font-size: 17px;
+            line-height: 1.4;
+        }
+
+        .brand p {
+            margin-top: 5px;
+            font-size: 12px;
+            opacity: .65;
+        }
+
+        .nav {
+            margin-top: 28px;
+        }
+
+        .nav button {
+            width: 100%;
+            border: none;
+            background: transparent;
+
+            color: rgba(255,255,255,.78);
+
+            text-align: left;
+            padding: 13px 14px;
+
+            margin-bottom: 6px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-size: 14px;
+        }
+
+        .nav button:hover,
+        .nav button.active {
+            background:
+                rgba(255,255,255,.10);
+
+            color: white;
+        }
+
+        .system-status {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+
+            font-size: 12px;
+            color: rgba(255,255,255,.65);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            display: inline-block;
+
+            border-radius: 50%;
+            background: #28c76f;
+
+            margin-right: 6px;
+        }
+
+        /* ============================
+           MAIN
+        ============================ */
+
+        .main {
+            margin-left: 250px;
+            padding: 34px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            margin-bottom: 30px;
+        }
+
+        .topbar h1 {
+            font-size: 26px;
+        }
+
+        .topbar p {
+            color: var(--muted);
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .date-badge {
+            background: white;
+            padding: 10px 15px;
+
+            border-radius: 8px;
+            border: 1px solid var(--border);
+
+            font-size: 13px;
+        }
+
+        /* ============================
+           CARDS
+        ============================ */
+
+        .stats {
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 18px;
+
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+
+            border-radius: 12px;
+
+            padding: 21px;
+
+            border: 1px solid var(--border);
+
+            box-shadow:
+                0 4px 14px
+                rgba(7,27,54,.04);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 13px;
+
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 750;
+        }
+
+        .stat-note {
+            margin-top: 8px;
+
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* ============================
+           CONTENT GRID
+        ============================ */
+
+        .grid {
+            display: grid;
+
+            grid-template-columns:
+                1.3fr .7fr;
+
+            gap: 20px;
+
+            margin-bottom: 22px;
+        }
+
+        .card h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .card-description {
+            color: var(--muted);
+            font-size: 12px;
+
+            margin-bottom: 18px;
+        }
+
+        /* ============================
+           UPLOAD
+        ============================ */
+
+        .upload-box {
+            border:
+                2px dashed #bdc9d7;
+
+            border-radius: 10px;
+
+            padding: 35px 20px;
+
+            text-align: center;
+
+            background: #fafcff;
+
+            transition: .2s;
+        }
+
+        .upload-box:hover {
+            border-color: var(--blue);
+            background: #f5f9fd;
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .upload-box p {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            border: none;
+
+            padding: 11px 18px;
+
+            border-radius: 7px;
+
+            cursor: pointer;
+
+            font-weight: 600;
+
+            margin-top: 15px;
+        }
+
+        .btn-primary {
+            background: var(--navy);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--navy-light);
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: var(--navy);
+        }
+
+        /* ============================
+           QUEUE
+        ============================ */
+
+        .queue-item {
+            padding: 13px 0;
+
+            border-bottom:
+                1px solid var(--border);
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .queue-item:last-child {
+            border-bottom: none;
+        }
+
+        .queue-title {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .queue-sub {
+            font-size: 11px;
+            color: var(--muted);
+
+            margin-top: 4px;
+        }
+
+        .badge {
+            font-size: 10px;
+
+            padding: 5px 8px;
+
+            border-radius: 20px;
+
+            font-weight: 700;
+        }
+
+        .badge-review {
+            color: #9a6200;
+            background: #fff3d6;
+        }
+
+        .badge-pending {
+            color: #245b91;
+            background: #e4f1ff;
+        }
+
+        /* ============================
+           TABLE
+        ============================ */
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            margin-top: 12px;
+        }
+
+        th {
+            text-align: left;
+
+            color: var(--muted);
+
+            font-size: 11px;
+
+            padding: 12px 10px;
+
+            border-bottom:
+                1px solid var(--border);
+        }
+
+        td {
+            padding: 13px 10px;
+
+            font-size: 12px;
+
+            border-bottom:
+                1px solid #edf1f5;
+        }
+
+        .approved {
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        /* ============================
+           AGENT
+        ============================ */
+
+        .agent {
+            background:
+                linear-gradient(
+                    135deg,
+                    #071b36,
+                    #123b68
+                );
+
+            color: white;
+        }
+
+        .agent .card-description {
+            color:
+                rgba(255,255,255,.65);
+        }
+
+        .chat-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-row input {
+            flex: 1;
+
+            padding: 13px 14px;
+
+            border: none;
+
+            border-radius: 7px;
+
+            outline: none;
+        }
+
+        .chat-row button {
+            padding: 0 18px;
+
+            border: none;
+
+            border-radius: 7px;
+
+            cursor: pointer;
+
+            font-weight: 700;
+
+            background: white;
+            color: var(--navy);
+        }
+
+        #agentAnswer {
+            margin-top: 15px;
+
+            padding: 13px;
+
+            background:
+                rgba(255,255,255,.08);
+
+            border-radius: 7px;
+
+            font-size: 13px;
+
+            display: none;
+        }
+
+        /* ============================
+           SECTIONS
+        ============================ */
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 13px;
+
+            padding: 20px 0;
+        }
+
+        /* ============================
+           RESPONSIVE
+        ============================ */
+
+        @media(max-width: 1050px) {
+
+            .stats {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media(max-width: 750px) {
+
+            .sidebar {
+                width: 75px;
+                padding: 20px 10px;
+            }
+
+            .brand h2,
+            .brand p,
+            .nav span,
+            .system-status {
+                display: none;
+            }
+
+            .brand-badge {
+                width: 45px;
+                height: 45px;
+            }
+
+            .main {
+                margin-left: 75px;
+                padding: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .date-badge {
+                display: none;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- ======================================
+     SIDEBAR
+======================================= -->
+
+<aside class="sidebar">
+
+    <div class="brand">
+
+        <div class="brand-badge">
+            GC
+        </div>
+
+        <h2>
+            Gopal Chavan<br>
+            Guniting Work
+        </h2>
+
+        <p>
+            Payment Management Agent
+        </p>
+
+    </div>
+
+    <div class="nav">
+
+        <button
+            class="active"
+            onclick="showSection('dashboard', this)">
+            <span>▦ &nbsp; Dashboard</span>
+        </button>
+
+        <button
+            onclick="showSection('payments', this)">
+            <span>₹ &nbsp; Payments</span>
+        </button>
+
+        <button
+            onclick="showSection('review', this)">
+            <span>! &nbsp; Needs Review</span>
+        </button>
+
+        <button
+            onclick="showSection('pending', this)">
+            <span>◷ &nbsp; Pending AI</span>
+        </button>
+
+        <button
+            onclick="showSection('agent', this)">
+            <span>✦ &nbsp; Ask Agent</span>
+        </button>
+
+    </div>
+
+    <div class="system-status">
+        <span class="status-dot"></span>
+        System Online
+    </div>
+
+</aside>
+
+
+<!-- ======================================
+     MAIN
+======================================= -->
+
+<main class="main">
+
+    <div class="topbar">
+
+        <div>
+            <h1>Payment Dashboard</h1>
+
+            <p>
+                GCGW expenditure and transaction management
+            </p>
+        </div>
+
+        <div
+            class="date-badge"
+            id="currentDate">
+        </div>
+
+    </div>
+
+
+    <!-- ==================================
+         DASHBOARD
+    =================================== -->
+
+    <section
+        id="dashboard"
+        class="section active">
+
+        <div class="stats">
+
+            <div class="card">
+                <div class="stat-label">
+                    Total Expenditure
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="totalExpenditure">
+                    ₹0
+                </div>
+
+                <div class="stat-note">
+                    Approved payments only
+                </div>
+            </div>
+
+
+            <div class="card">
+                <div class="stat-label">
+                    This Month
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="monthExpenditure">
+                    ₹0
+                </div>
+
+                <div class="stat-note">
+                    Current month spending
+                </div>
+            </div>
+
+
+            <div class="card">
+                <div class="stat-label">
+                    Approved Payments
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="approvedCount">
+                    0
+                </div>
+
+                <div class="stat-note">
+                    Verified transactions
+                </div>
+            </div>
+
+
+            <div class="card">
+                <div class="stat-label">
+                    Needs Attention
+                </div>
+
+                <div
+                    class="stat-value"
+                    id="attentionCount">
+                    0
+                </div>
+
+                <div class="stat-note">
+                    Review + Pending AI
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="grid">
+
+            <!-- UPLOAD -->
+
+            <div class="card">
+
+                <h3>
+                    Upload Payment Screenshots
+                </h3>
+
+                <div class="card-description">
+                    Upload Google Pay, PhonePe,
+                    UPI or bank payment screenshots.
+                </div>
+
+                <div class="upload-box">
+
+                    <div class="upload-icon">
+                        ↑
+                    </div>
+
+                    <strong>
+                        Add payment screenshots
+                    </strong>
+
+                    <p>
+                        PNG, JPG, JPEG or WEBP.
+                        Multiple files supported.
+                    </p>
+
+                    <label
+                        class="btn btn-primary"
+                        for="paymentFiles">
+
+                        Select Screenshots
+
+                    </label>
+
+                    <input
+                        id="paymentFiles"
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        multiple>
+
+                    <div
+                        id="selectedFiles"
+                        style="
+                            margin-top:15px;
+                            font-size:12px;
+                            color:#6c7887;
+                        ">
+                    </div>
+
+                    <button
+                        class="btn btn-primary"
+                        id="uploadButton"
+                        onclick="uploadPayments()"
+                        style="display:none;">
+
+                        Upload Payments
+
+                    </button>
+
+                    <div
+                        id="uploadResult"
+                        style="
+                            margin-top:15px;
+                            font-size:12px;
+                        ">
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ATTENTION -->
+
+            <div class="card">
+
+                <h3>
+                    Attention Required
+                </h3>
+
+                <div class="card-description">
+                    Transactions requiring
+                    human or AI processing.
+                </div>
+
+                <div class="queue-item">
+
+                    <div>
+                        <div class="queue-title">
+                            Needs Review
+                        </div>
+
+                        <div class="queue-sub">
+                            Missing or uncertain fields
+                        </div>
+                    </div>
+
+                    <span
+                        class="badge badge-review"
+                        id="reviewBadge">
+                        0
+                    </span>
+
+                </div>
+
+
+                <div class="queue-item">
+
+                    <div>
+                        <div class="queue-title">
+                            Pending AI
+                        </div>
+
+                        <div class="queue-sub">
+                            Waiting for AI processing
+                        </div>
+                    </div>
+
+                    <span
+                        class="badge badge-pending"
+                        id="pendingBadge">
+                        0
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- AGENT QUICK QUESTION -->
+
+        <div class="card agent">
+
+            <h3>
+                Ask GCGW Agent
+            </h3>
+
+            <div class="card-description">
+                Ask questions about company expenditure.
+            </div>
+
+            <div class="chat-row">
+
+                <input
+                    id="quickQuestion"
+                    placeholder=
+                    "Example: How much did we spend this month?">
+
+                <button
+                    onclick="askAgent('quickQuestion')">
+                    Ask
+                </button>
+
+            </div>
+
+            <div id="agentAnswer"></div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ==================================
+         PAYMENTS
+    =================================== -->
+
+    <section
+        id="payments"
+        class="section">
+
+        <div class="card">
+
+            <h3>
+                Payment History
+            </h3>
+
+            <div class="card-description">
+                Approved GCGW expenditure records.
+            </div>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Paid To</th>
+                            <th>Project</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Mode</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="paymentsTable">
+
+                        <tr>
+                            <td
+                                colspan="7"
+                                class="empty">
+                                Payment history API
+                                will be connected next.
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ==================================
+         REVIEW
+    =================================== -->
+
+    <section
+        id="review"
+        class="section">
+
+        <div class="card">
+
+            <h3>
+                Needs Review
+            </h3>
+
+            <div class="card-description">
+                AI will never guess uncertain
+                financial information.
+                Confirm these transactions manually.
+            </div>
+
+            <div
+                id="reviewList"
+                class="empty">
+
+                Loading review queue...
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ==================================
+         PENDING AI
+    =================================== -->
+
+    <section
+        id="pending"
+        class="section">
+
+        <div class="card">
+
+            <h3>
+                Pending AI
+            </h3>
+
+            <div class="card-description">
+                Screenshots safely stored while
+                AI processing is unavailable.
+            </div>
+
+            <div
+                id="pendingList"
+                class="empty">
+
+                Loading Pending AI queue...
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ==================================
+         FULL AGENT
+    =================================== -->
+
+    <section
+        id="agent"
+        class="section">
+
+        <div class="card agent">
+
+            <h3>
+                GCGW Accounting Agent
+            </h3>
+
+            <div class="card-description">
+                Ask about expenditure, projects,
+                categories, suppliers and payments.
+            </div>
+
+            <div class="chat-row">
+
+                <input
+                    id="agentQuestion"
+                    placeholder=
+                    "Ask a question about GCGW payments...">
+
+                <button
+                    onclick="askAgent('agentQuestion')">
+                    Ask Agent
+                </button>
+
+            </div>
+
+            <div id="fullAgentAnswer"></div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+    // ======================================
+    // DATE
+    // ======================================
+
+    document.getElementById(
+        "currentDate"
+    ).textContent =
+        new Date().toLocaleDateString(
+            "en-IN",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
+        );
+
+
+    // ======================================
+    // NAVIGATION
+    // ======================================
+
+    function showSection(id, button) {
+
+        document
+            .querySelectorAll(".section")
+            .forEach(section => {
+                section.classList.remove("active");
+            });
+
+        document
+            .getElementById(id)
+            .classList.add("active");
+
+        document
+            .querySelectorAll(".nav button")
+            .forEach(btn => {
+                btn.classList.remove("active");
+            });
+
+        button.classList.add("active");
+    }
+
+
+    // ======================================
+    // INR FORMATTER
+    // ======================================
+
+    function formatINR(value) {
+
+        const number =
+            Number(value || 0);
+
+        return "₹" +
+            number.toLocaleString(
+                "en-IN",
+                {
+                    maximumFractionDigits: 2
+                }
+            );
+    }
+
+
+    // ======================================
+    // DASHBOARD SUMMARY
+    // ======================================
+
+    async function loadSummary() {
+
+        try {
+
+            const response =
+                await fetch("/api/summary");
+
+            const data =
+                await response.json();
+
+            document.getElementById(
+                "totalExpenditure"
+            ).textContent =
+                formatINR(
+                    data.total_expenditure
+                );
+
+            document.getElementById(
+                "monthExpenditure"
+            ).textContent =
+                formatINR(
+                    data.this_month
+                );
+
+            document.getElementById(
+                "approvedCount"
+            ).textContent =
+                data.approved_payments || 0;
+
+            const review =
+                data.needs_review || 0;
+
+            const pending =
+                data.pending_ai || 0;
+
+            document.getElementById(
+                "attentionCount"
+            ).textContent =
+                review + pending;
+
+            document.getElementById(
+                "reviewBadge"
+            ).textContent =
+                review;
+
+            document.getElementById(
+                "pendingBadge"
+            ).textContent =
+                pending;
+
+        }
+
+        catch(error) {
+
+            console.error(
+                "Summary error:",
+                error
+            );
+        }
+    }
+
+
+    // ======================================
+    // FILE SELECTION
+    // ======================================
+
+    const fileInput =
+        document.getElementById(
+            "paymentFiles"
+        );
+
+    fileInput.addEventListener(
+        "change",
+        function() {
+
+            const count =
+                this.files.length;
+
+            const selected =
+                document.getElementById(
+                    "selectedFiles"
+                );
+
+            const button =
+                document.getElementById(
+                    "uploadButton"
+                );
+
+            if(count > 0) {
+
+                selected.textContent =
+                    count +
+                    " screenshot(s) selected";
+
+                button.style.display =
+                    "inline-block";
+
+            } else {
+
+                selected.textContent = "";
+
+                button.style.display =
+                    "none";
+            }
+        }
+    );
+
+
+    // ======================================
+    // UPLOAD
+    // ======================================
+
+    async function uploadPayments() {
+
+        const files =
+            fileInput.files;
+
+        if(!files.length) {
+            return;
+        }
+
+        const form =
+            new FormData();
+
+        for(const file of files) {
+            form.append(
+                "files",
+                file
+            );
+        }
+
+        const resultBox =
+            document.getElementById(
+                "uploadResult"
+            );
+
+        const button =
+            document.getElementById(
+                "uploadButton"
+            );
+
+        button.disabled = true;
+        button.textContent =
+            "Uploading...";
+
+        resultBox.textContent =
+            "Uploading payment screenshots...";
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/upload",
+                    {
+                        method: "POST",
+                        body: form
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if(!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Upload failed."
+                );
+            }
+
+            resultBox.textContent =
+                "✓ " +
+                data.uploaded +
+                " screenshot(s) uploaded.";
+
+            fileInput.value = "";
+
+            document.getElementById(
+                "selectedFiles"
+            ).textContent = "";
+
+            button.style.display =
+                "none";
+
+            await loadSummary();
+            await loadPendingAI();
+
+        }
+
+        catch(error) {
+
+            resultBox.textContent =
+                "Upload error: " +
+                error.message;
+
+        }
+
+        finally {
+
+            button.disabled = false;
+
+            button.textContent =
+                "Upload Payments";
+        }
+    }
+
+
+    // ======================================
+    // NEEDS REVIEW
+    // ======================================
+
+    async function loadReview() {
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/review"
+                );
+
+            const data =
+                await response.json();
+
+            const box =
+                document.getElementById(
+                    "reviewList"
+                );
+
+            const payments =
+                data.payments || [];
+
+            if(!payments.length) {
+
+                box.innerHTML =
+                    "No payments currently require review.";
+
+                return;
+            }
+
+            box.innerHTML =
+                payments.map(item => `
+                    <div class="queue-item">
+                        <div>
+                            <div class="queue-title">
+                                ${item.paid_to || "Unknown Payee"}
+                            </div>
+
+                            <div class="queue-sub">
+                                ${item.reason || "Manual review required"}
+                            </div>
+                        </div>
+
+                        <span class="badge badge-review">
+                            Review
+                        </span>
+                    </div>
+                `).join("");
+
+        }
+
+        catch(error) {
+
+            console.error(
+                "Review queue error:",
+                error
+            );
+        }
+    }
+
+
+    // ======================================
+    // PENDING AI
+    // ======================================
+
+    async function loadPendingAI() {
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/pending-ai"
+                );
+
+            const data =
+                await response.json();
+
+            const box =
+                document.getElementById(
+                    "pendingList"
+                );
+
+            const payments =
+                data.payments || [];
+
+            if(!payments.length) {
+
+                box.innerHTML =
+                    "No screenshots are waiting for AI.";
+
+                return;
+            }
+
+            box.innerHTML =
+                payments.map(item => `
+                    <div class="queue-item">
+                        <div>
+                            <div class="queue-title">
+                                ${item.filename || "Payment screenshot"}
+                            </div>
+
+                            <div class="queue-sub">
+                                ${item.status || "Pending"}
+                            </div>
+                        </div>
+
+                        <span class="badge badge-pending">
+                            Pending
+                        </span>
+                    </div>
+                `).join("");
+
+        }
+
+        catch(error) {
+
+            console.error(
+                "Pending AI error:",
+                error
+            );
+        }
+    }
+
+
+    // ======================================
+    // ASK AGENT
+    // ======================================
+
+    async function askAgent(inputId) {
+
+        const input =
+            document.getElementById(
+                inputId
+            );
+
+        const question =
+            input.value.trim();
+
+        if(!question) {
+            return;
+        }
+
+        const answerBox =
+            inputId === "quickQuestion"
+            ? document.getElementById(
+                "agentAnswer"
+              )
+            : document.getElementById(
+                "fullAgentAnswer"
+              );
+
+        answerBox.style.display =
+            "block";
+
+        answerBox.textContent =
+            "Checking GCGW records...";
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/ask",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify({
+                                question: question
+                            })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            answerBox.textContent =
+                data.answer ||
+                data.error ||
+                "No answer returned.";
+
+        }
+
+        catch(error) {
+
+            answerBox.textContent =
+                "Agent error: " +
+                error.message;
+        }
+    }
+
+
+
+    // ======================================
+    // PAYMENT HISTORY
+    // ======================================
+
+    async function loadPayments() {
+
+        const table =
+            document.getElementById(
+                "paymentsTable"
+            );
+
+        if (!table) {
+            return;
+        }
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty">
+                    Loading approved payments...
+                </td>
+            </tr>
+        `;
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/payments"
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Could not load payments."
+                );
+            }
+
+            const payments =
+                data.payments || [];
+
+            if (!payments.length) {
+
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="7"
+                            class="empty">
+                            No approved payments found.
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            // --------------------------------
+            // SAFE HTML FUNCTION
+            // Prevents data from being treated
+            // as executable HTML.
+            // --------------------------------
+
+            function escapeHTML(value) {
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+                div.textContent =
+                    value ?? "";
+
+                return div.innerHTML;
+            }
+
+
+            // --------------------------------
+            // CREATE TABLE ROWS
+            // --------------------------------
+
+            table.innerHTML =
+                payments.map(
+                    payment => {
+
+                        const date =
+                            escapeHTML(
+                                payment.date || "-"
+                            );
+
+                        const paidTo =
+                            escapeHTML(
+                                payment.paid_to ||
+                                "Unknown"
+                            );
+
+                        const project =
+                            escapeHTML(
+                                payment.project ||
+                                "Unassigned"
+                            );
+
+                        const category =
+                            escapeHTML(
+                                payment.category ||
+                                "Other"
+                            );
+
+                        const mode =
+                            escapeHTML(
+                                payment.payment_mode ||
+                                "-"
+                            );
+
+                        const status =
+                            escapeHTML(
+                                payment.status ||
+                                "Approved"
+                            );
+
+                        const amount =
+                            formatINR(
+                                payment.amount || 0
+                            );
+
+                        return `
+                            <tr>
+
+                                <td>
+                                    ${date}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        ${paidTo}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    ${project}
+                                </td>
+
+                                <td>
+                                    ${category}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        ${amount}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    ${mode}
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="approved">
+                                        ${status}
+                                    </span>
+                                </td>
+
+                            </tr>
+                        `;
+                    }
+                ).join("");
+
+        }
+
+        catch(error) {
+
+            console.error(
+                "Payment history error:",
+                error
+            );
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="7"
+                        class="empty">
+                        Could not load payment history.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+
+    // ======================================
+    // INITIAL LOAD
+    // ======================================
+
+    loadSummary();
+    loadPayments();
+    loadReview();
+    loadPendingAI();
+
+</script>
+
+</body>
+</html>
