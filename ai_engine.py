@@ -421,7 +421,7 @@ def clean_payment(payment):
 
 def analyze_payment_screenshot(
     image_path,
-    max_attempts=3
+    max_attempts=1
 ):
 
     image_path = Path(
