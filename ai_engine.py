@@ -16,7 +16,7 @@ from google.genai import types
 
 MODEL_NAME = os.environ.get(
     "GEMINI_MODEL",
-    "gemini-3.6-flash"
+    "gemini-3.1-flash-lite"
 )
 
 # Maximum time Gemini is allowed to take.
@@ -572,11 +572,14 @@ def analyze_payment_screenshot(
 
         if payment is None:
 
-            return ExtractionResult(
-                success=False,
-                error=(
-                    "Gemini returned no "
-                    "payment information."
+            # Gemini responded, but no structured fields were usable.
+            # Do NOT send this to Pending AI. Create a blank review item
+            # so the user can complete it manually.
+            payment = PaymentTransaction(
+                needs_review=True,
+                review_reason=(
+                    "AI could not read enough details. "
+                    "Please complete this payment manually."
                 )
             )
 
@@ -593,12 +596,20 @@ def analyze_payment_screenshot(
             payment
         ):
 
+            # A valid Gemini response with unreadable/empty fields
+            # is still treated as a successful extraction attempt.
+            # This keeps the screenshot out of Pending AI and sends
+            # it directly to Needs Review.
+            payment.needs_review = True
+            payment.review_reason = (
+                "AI could not read enough payment details. "
+                "Please enter the missing information manually."
+            )
+
             return ExtractionResult(
-                success=False,
-                error=(
-                    "Gemini could not detect "
-                    "useful payment information."
-                )
+                success=True,
+                payment=payment,
+                quota_error=False
             )
 
         # ----------------------------------------------------
@@ -820,7 +831,7 @@ def extract_payment_for_web(
     )
 
     # --------------------------------------------------------
-    # TRUE TECHNICAL FAILURE
+    # TRUE TECHNICAL FAILURE ONLY
     # --------------------------------------------------------
 
     if not result.success:
@@ -860,7 +871,7 @@ def extract_payment_for_web(
             False,
 
         "partial_extraction":
-            True,
+            bool(validation.get("partial_extraction", True)),
 
         "error":
             None
