@@ -1,9 +1,9 @@
-import os
 import sqlite3
+import hashlib
+import hmac
+import secrets
 from pathlib import Path
-from datetime import datetime
-
-from passlib.context import CryptContext
+from datetime import datetime, timezone
 
 
 # ============================================================
@@ -11,21 +11,28 @@ from passlib.context import CryptContext
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
+
 DATA_DIR = BASE_DIR / "data"
 
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-USERS_DB = DATA_DIR / "users.db"
-
-
-# ============================================================
-# PASSWORD HASHING
-# ============================================================
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
+DATA_DIR.mkdir(
+    parents=True,
+    exist_ok=True
 )
+
+USERS_DB = (
+    DATA_DIR /
+    "users.db"
+)
+
+
+# ============================================================
+# PASSWORD SETTINGS
+# ============================================================
+
+MIN_PASSWORD_LENGTH = 8
+MAX_PASSWORD_LENGTH = 64
+
+PBKDF2_ITERATIONS = 310000
 
 
 # ============================================================
@@ -33,20 +40,27 @@ pwd_context = CryptContext(
 # ============================================================
 
 def get_connection():
+
     connection = sqlite3.connect(
         USERS_DB
     )
 
-    connection.row_factory = sqlite3.Row
+    connection.row_factory = (
+        sqlite3.Row
+    )
 
     return connection
 
 
 def init_user_database():
 
-    connection = get_connection()
+    connection = (
+        get_connection()
+    )
 
-    cursor = connection.cursor()
+    cursor = (
+        connection.cursor()
+    )
 
     cursor.execute(
         """
@@ -73,12 +87,11 @@ def init_user_database():
     connection.close()
 
 
-# Create DB/table when application starts
 init_user_database()
 
 
 # ============================================================
-# HELPERS
+# EMAIL
 # ============================================================
 
 def clean_email(email):
@@ -86,27 +99,157 @@ def clean_email(email):
     if not email:
         return ""
 
-    return str(email).strip().lower()
-
-
-def hash_password(password):
-
-    return pwd_context.hash(
-        password
+    return (
+        str(email)
+        .strip()
+        .lower()
     )
 
 
+# ============================================================
+# PASSWORD VALIDATION
+# ============================================================
+
+def validate_password(password):
+
+    password = str(
+        password or ""
+    )
+
+    if not password:
+
+        return {
+            "success": False,
+            "error": (
+                "Password is required."
+            )
+        }
+
+
+    if len(password) < MIN_PASSWORD_LENGTH:
+
+        return {
+            "success": False,
+            "error": (
+                "Password must contain "
+                "at least 8 characters."
+            )
+        }
+
+
+    if len(password) > MAX_PASSWORD_LENGTH:
+
+        return {
+            "success": False,
+            "error": (
+                "Password must be "
+                "64 characters or fewer."
+            )
+        }
+
+
+    return {
+        "success": True
+    }
+
+
+# ============================================================
+# PASSWORD HASHING
+# ============================================================
+
+def hash_password(password):
+
+    password = str(
+        password
+    )
+
+    salt = secrets.token_hex(
+        16
+    )
+
+
+    password_hash = (
+        hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode(
+                "utf-8"
+            ),
+            salt.encode(
+                "utf-8"
+            ),
+            PBKDF2_ITERATIONS
+        )
+        .hex()
+    )
+
+
+    return (
+        f"pbkdf2_sha256$"
+        f"{PBKDF2_ITERATIONS}$"
+        f"{salt}$"
+        f"{password_hash}"
+    )
+
+
+# ============================================================
+# VERIFY PASSWORD
+# ============================================================
+
 def verify_password(
     plain_password,
-    password_hash
+    stored_hash
 ):
 
     try:
 
-        return pwd_context.verify(
-            plain_password,
-            password_hash
+        parts = str(
+            stored_hash
+        ).split("$")
+
+
+        if len(parts) != 4:
+            return False
+
+
+        algorithm = parts[0]
+
+        iterations = int(
+            parts[1]
         )
+
+        salt = parts[2]
+
+        expected_hash = (
+            parts[3]
+        )
+
+
+        if algorithm != "pbkdf2_sha256":
+            return False
+
+
+        calculated_hash = (
+            hashlib.pbkdf2_hmac(
+                "sha256",
+                str(
+                    plain_password
+                ).encode(
+                    "utf-8"
+                ),
+                salt.encode(
+                    "utf-8"
+                ),
+                iterations
+            )
+            .hex()
+        )
+
+
+        return hmac.compare_digest(
+            calculated_hash,
+            expected_hash
+        )
+
 
     except Exception:
 
@@ -114,19 +257,28 @@ def verify_password(
 
 
 # ============================================================
-# GET USER
+# GET USER BY EMAIL
 # ============================================================
 
 def get_user_by_email(email):
 
-    email = clean_email(email)
+    email = clean_email(
+        email
+    )
+
 
     if not email:
         return None
 
-    connection = get_connection()
 
-    cursor = connection.cursor()
+    connection = (
+        get_connection()
+    )
+
+    cursor = (
+        connection.cursor()
+    )
+
 
     cursor.execute(
         """
@@ -137,30 +289,51 @@ def get_user_by_email(email):
             password_hash,
             created_at,
             is_active
+
         FROM users
+
         WHERE email = ?
         """,
-        (email,)
+        (
+            email,
+        )
     )
 
-    row = cursor.fetchone()
+
+    row = (
+        cursor.fetchone()
+    )
 
     connection.close()
+
 
     if not row:
         return None
 
-    return dict(row)
 
+    return dict(
+        row
+    )
+
+
+# ============================================================
+# GET USER BY ID
+# ============================================================
 
 def get_user_by_id(user_id):
 
     if not user_id:
         return None
 
-    connection = get_connection()
 
-    cursor = connection.cursor()
+    connection = (
+        get_connection()
+    )
+
+    cursor = (
+        connection.cursor()
+    )
+
 
     cursor.execute(
         """
@@ -170,20 +343,31 @@ def get_user_by_id(user_id):
             email,
             created_at,
             is_active
+
         FROM users
+
         WHERE id = ?
         """,
-        (user_id,)
+        (
+            user_id,
+        )
     )
 
-    row = cursor.fetchone()
+
+    row = (
+        cursor.fetchone()
+    )
 
     connection.close()
+
 
     if not row:
         return None
 
-    return dict(row)
+
+    return dict(
+        row
+    )
 
 
 # ============================================================
@@ -197,11 +381,17 @@ def register_user(
 ):
 
     full_name = (
-        str(full_name or "")
+        str(
+            full_name or ""
+        )
         .strip()
     )
 
-    email = clean_email(email)
+
+    email = clean_email(
+        email
+    )
+
 
     password = str(
         password or ""
@@ -209,46 +399,70 @@ def register_user(
 
 
     # --------------------------------------------------------
-    # VALIDATION
+    # NAME
     # --------------------------------------------------------
 
     if len(full_name) < 2:
 
         return {
             "success": False,
-            "error": "Please enter your full name."
-        }
-
-
-    if not email:
-
-        return {
-            "success": False,
-            "error": "Email is required."
-        }
-
-
-    if "@" not in email or "." not in email:
-
-        return {
-            "success": False,
-            "error": "Please enter a valid email address."
-        }
-
-
-    if len(password) < 8:
-
-        return {
-            "success": False,
             "error": (
-                "Password must contain at least "
-                "8 characters."
+                "Please enter your full name."
             )
         }
 
 
     # --------------------------------------------------------
-    # CHECK EXISTING ACCOUNT
+    # EMAIL
+    # --------------------------------------------------------
+
+    if not email:
+
+        return {
+            "success": False,
+            "error": (
+                "Email address is required."
+            )
+        }
+
+
+    if (
+        "@" not in email
+        or
+        "." not in email
+    ):
+
+        return {
+            "success": False,
+            "error": (
+                "Please enter a valid "
+                "email address."
+            )
+        }
+
+
+    # --------------------------------------------------------
+    # PASSWORD
+    # --------------------------------------------------------
+
+    password_check = (
+        validate_password(
+            password
+        )
+    )
+
+
+    if not password_check.get(
+        "success"
+    ):
+
+        return (
+            password_check
+        )
+
+
+    # --------------------------------------------------------
+    # EXISTING ACCOUNT
     # --------------------------------------------------------
 
     existing_user = (
@@ -270,18 +484,36 @@ def register_user(
 
 
     # --------------------------------------------------------
-    # HASH PASSWORD
+    # CREATE PASSWORD HASH
     # --------------------------------------------------------
 
-    password_hash = (
-        hash_password(
-            password
-        )
-    )
+    try:
 
+        password_hash = (
+            hash_password(
+                password
+            )
+        )
+
+    except Exception:
+
+        return {
+            "success": False,
+            "error": (
+                "Could not create your account. "
+                "Please try again."
+            )
+        }
+
+
+    # --------------------------------------------------------
+    # DATE
+    # --------------------------------------------------------
 
     created_at = (
-        datetime.utcnow()
+        datetime.now(
+            timezone.utc
+        )
         .isoformat()
     )
 
@@ -290,21 +522,29 @@ def register_user(
     # INSERT USER
     # --------------------------------------------------------
 
-    connection = get_connection()
+    connection = (
+        get_connection()
+    )
 
-    cursor = connection.cursor()
+    cursor = (
+        connection.cursor()
+    )
+
 
     try:
 
         cursor.execute(
             """
             INSERT INTO users (
+
                 full_name,
                 email,
                 password_hash,
                 created_at,
                 is_active
+
             )
+
             VALUES (?, ?, ?, ?, ?)
             """,
             (
@@ -316,9 +556,13 @@ def register_user(
             )
         )
 
+
         connection.commit()
 
-        user_id = cursor.lastrowid
+
+        user_id = (
+            cursor.lastrowid
+        )
 
 
     except sqlite3.IntegrityError:
@@ -334,13 +578,16 @@ def register_user(
         }
 
 
-    except Exception as error:
+    except Exception:
 
         connection.close()
 
         return {
             "success": False,
-            "error": str(error)
+            "error": (
+                "Could not create your account. "
+                "Please try again."
+            )
         }
 
 
@@ -348,17 +595,25 @@ def register_user(
 
 
     return {
+
         "success": True,
+
         "user": {
-            "id": user_id,
-            "full_name": full_name,
-            "email": email
+
+            "id":
+                user_id,
+
+            "full_name":
+                full_name,
+
+            "email":
+                email
         }
     }
 
 
 # ============================================================
-# AUTHENTICATE USER
+# LOGIN
 # ============================================================
 
 def authenticate_user(
@@ -366,7 +621,26 @@ def authenticate_user(
     password
 ):
 
-    email = clean_email(email)
+    email = clean_email(
+        email
+    )
+
+
+    password = str(
+        password or ""
+    )
+
+
+    if not email or not password:
+
+        return {
+            "success": False,
+            "error": (
+                "Please enter your "
+                "email and password."
+            )
+        }
+
 
     user = (
         get_user_by_email(
@@ -392,7 +666,8 @@ def authenticate_user(
         return {
             "success": False,
             "error": (
-                "This account is currently inactive."
+                "This account is "
+                "currently inactive."
             )
         }
 
@@ -419,10 +694,18 @@ def authenticate_user(
 
 
     return {
+
         "success": True,
+
         "user": {
-            "id": user["id"],
-            "full_name": user["full_name"],
-            "email": user["email"]
+
+            "id":
+                user["id"],
+
+            "full_name":
+                user["full_name"],
+
+            "email":
+                user["email"]
         }
     }
