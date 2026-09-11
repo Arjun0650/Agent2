@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Register | GCGW Payment Agent</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #071b36,
+            #123b68
+        );
+
+    padding: 20px;
+}
+
+.auth-card {
+
+    width: 100%;
+    max-width: 460px;
+
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 36px;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0,0,0,.22);
+}
+
+.logo {
+
+    width: 60px;
+    height: 60px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 18px;
+
+    border-radius: 14px;
+
+    background: #071b36;
+    color: white;
+
+    font-size: 22px;
+    font-weight: 800;
+}
+
+h1 {
+
+    text-align: center;
+
+    color: #071b36;
+
+    font-size: 25px;
+
+    margin-bottom: 8px;
+}
+
+.subtitle {
+
+    text-align: center;
+
+    color: #6c7887;
+
+    font-size: 13px;
+
+    margin-bottom: 28px;
+}
+
+.form-group {
+
+    margin-bottom: 17px;
+}
+
+label {
+
+    display: block;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: #344256;
+
+    margin-bottom: 7px;
+}
+
+input {
+
+    width: 100%;
+
+    padding: 12px 13px;
+
+    border: 1px solid #ccd6e2;
+
+    border-radius: 8px;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+input:focus {
+
+    border-color: #1f5f99;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(31,95,153,.10);
+}
+
+button {
+
+    width: 100%;
+
+    padding: 12px;
+
+    margin-top: 8px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #071b36;
+    color: white;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+button:hover {
+    background: #102c50;
+}
+
+button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+#messageBox {
+
+    display: none;
+
+    margin-top: 16px;
+
+    padding: 11px;
+
+    border-radius: 7px;
+
+    background: #fdeceb;
+    color: #c0392b;
+
+    font-size: 12px;
+}
+
+.success {
+
+    background: #eaf7ef !important;
+    color: #198754 !important;
+}
+
+.login-link {
+
+    margin-top: 22px;
+
+    text-align: center;
+
+    font-size: 13px;
+
+    color: #6c7887;
+}
+
+.login-link a {
+
+    color: #1f5f99;
+
+    text-decoration: none;
+
+    font-weight: 700;
+}
+
+.login-link a:hover {
+
+    text-decoration: underline;
+}
+
+.company {
+
+    margin-top: 26px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #e1e7ef;
+
+    text-align: center;
+
+    font-size: 11px;
+
+    color: #8a95a3;
+}
+
+.password-note {
+
+    margin-top: 6px;
+
+    font-size: 11px;
+
+    color: #8a95a3;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="auth-card">
+
+    <div class="logo">
+        GC
+    </div>
+
+    <h1>
+        Create Account
+    </h1>
+
+    <div class="subtitle">
+        Register for GCGW Payment Management Agent
+    </div>
+
+
+    <form id="registerForm">
+
+
+        <div class="form-group">
+
+            <label for="fullName">
+                Full Name
+            </label>
+
+            <input
+                id="fullName"
+                type="text"
+                placeholder="Enter your full name"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="email">
+                Email Address
+            </label>
+
+            <input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="password">
+                Password
+            </label>
+
+            <input
+                id="password"
+                type="password"
+                placeholder="Create a password"
+                required
+            >
+
+            <div class="password-note">
+                Minimum 8 characters
+            </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="confirmPassword">
+                Confirm Password
+            </label>
+
+            <input
+                id="confirmPassword"
+                type="password"
+                placeholder="Re-enter your password"
+                required
+            >
+
+        </div>
+
+
+        <button
+            type="submit"
+            id="registerButton">
+
+            Create Account
+
+        </button>
+
+
+    </form>
+
+
+    <div id="messageBox"></div>
+
+
+    <div class="login-link">
+
+        Already have an account?
+
+        <a href="/">
+            Login
+        </a>
+
+    </div>
+
+
+    <div class="company">
+
+        Gopal Chavan Guniting Work
+        <br>
+        Secure Payment Management System
+
+    </div>
+
+</div>
+
+
+<script>
+
+const form =
+    document.getElementById(
+        "registerForm"
+    );
+
+const messageBox =
+    document.getElementById(
+        "messageBox"
+    );
+
+const button =
+    document.getElementById(
+        "registerButton"
+    );
+
+
+form.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        messageBox.style.display =
+            "none";
+
+        messageBox.classList.remove(
+            "success"
+        );
+
+
+        const fullName =
+            document.getElementById(
+                "fullName"
+            ).value.trim();
+
+
+        const email =
+            document.getElementById(
+                "email"
+            ).value.trim();
+
+
+        const password =
+            document.getElementById(
+                "password"
+            ).value;
+
+
+        const confirmPassword =
+            document.getElementById(
+                "confirmPassword"
+            ).value;
+
+
+        if(
+            !fullName ||
+            !email ||
+            !password ||
+            !confirmPassword
+        ) {
+
+            showMessage(
+                "Please complete all fields.",
+                false
+            );
+
+            return;
+        }
+
+
+        if(password.length < 8) {
+
+            showMessage(
+                "Password must contain at least 8 characters.",
+                false
+            );
+
+            return;
+        }
+
+
+        if(password !== confirmPassword) {
+
+            showMessage(
+                "Passwords do not match.",
+                false
+            );
+
+            return;
+        }
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "Creating Account...";
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/register",
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify({
+                                full_name:
+                                    fullName,
+
+                                email:
+                                    email,
+
+                                password:
+                                    password
+                            })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if(!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    data.detail ||
+                    "Registration failed."
+                );
+            }
+
+
+            showMessage(
+                "Account created successfully. Redirecting...",
+                true
+            );
+
+
+            setTimeout(
+                () => {
+
+                    window.location.href =
+                        "/dashboard";
+
+                },
+                700
+            );
+
+
+        }
+
+        catch(error) {
+
+            showMessage(
+                error.message,
+                false
+            );
+
+        }
+
+        finally {
+
+            button.disabled = false;
+
+            button.textContent =
+                "Create Account";
+
+        }
+
+    }
+);
+
+
+function showMessage(
+    message,
+    success
+) {
+
+    messageBox.textContent =
+        message;
+
+    messageBox.classList.toggle(
+        "success",
+        success
+    );
+
+    messageBox.style.display =
+        "block";
+
+}
+
+</script>
+
+</body>
+
+</html>
