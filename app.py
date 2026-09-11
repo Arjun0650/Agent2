@@ -3,9 +3,15 @@ import json
 from pathlib import Path
 from datetime import date, datetime
 
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi import FastAPI, UploadFile, File, Request
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    FileResponse,
+    RedirectResponse
+)
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from openpyxl import load_workbook
 
@@ -14,6 +20,12 @@ from payment_engine import (
     process_extracted_payment,
     add_pending_ai,
     approve_review_payment
+)
+
+from auth import (
+    register_user,
+    authenticate_user,
+    get_user_by_id
 )
 
 
@@ -46,7 +58,17 @@ app = FastAPI(
         "AI payment and expenditure management "
         "for Gopal Chavan Guniting Work."
     ),
-    version="1.2.0"
+    version="1.3.0"
+)
+
+
+# ============================================================
+# LOGIN SESSION
+# ============================================================
+
+SESSION_SECRET = os.environ.get(
+    "SESSION_SECRET_KEY",
+    "gcgw-development-secret-change-on-render"
 )
 
 app.mount(
@@ -602,14 +624,67 @@ def accounting_summary():
 
 
 # ============================================================
-# HOME
+# AUTH PAGES
 # ============================================================
 
 @app.get(
     "/",
     response_class=HTMLResponse
 )
-def home():
+def login_page(request: Request):
+
+    if request.session.get("user_id"):
+
+        return RedirectResponse(
+            url="/dashboard",
+            status_code=302
+        )
+
+    login_file = (
+        TEMPLATES_DIR /
+        "login.html"
+    )
+
+    return login_file.read_text(
+        encoding="utf-8"
+    )
+
+
+@app.get(
+    "/register",
+    response_class=HTMLResponse
+)
+def register_page(request: Request):
+
+    if request.session.get("user_id"):
+
+        return RedirectResponse(
+            url="/dashboard",
+            status_code=302
+        )
+
+    register_file = (
+        TEMPLATES_DIR /
+        "register.html"
+    )
+
+    return register_file.read_text(
+        encoding="utf-8"
+    )
+
+
+@app.get(
+    "/dashboard",
+    response_class=HTMLResponse
+)
+def dashboard(request: Request):
+
+    if not request.session.get("user_id"):
+
+        return RedirectResponse(
+            url="/",
+            status_code=302
+        )
 
     index_file = (
         TEMPLATES_DIR /
@@ -619,6 +694,265 @@ def home():
     return index_file.read_text(
         encoding="utf-8"
     )
+
+
+# ============================================================
+# REGISTER API
+# ============================================================
+
+@app.post("/api/register")
+async def register_account(
+    request: Request
+):
+
+    try:
+
+        payload = await request.json()
+
+        full_name = (
+            payload.get("full_name")
+            or ""
+        )
+
+        email = (
+            payload.get("email")
+            or ""
+        )
+
+        password = (
+            payload.get("password")
+            or ""
+        )
+
+        result = register_user(
+            full_name,
+            email,
+            password
+        )
+
+        if not result.get("success"):
+
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+
+        user = result["user"]
+
+        request.session["user_id"] = (
+            user["id"]
+        )
+
+        return {
+            "success": True,
+            "message": (
+                "Account created successfully."
+            ),
+            "user": user
+        }
+
+    except Exception as e:
+
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e)
+            }
+        )
+
+
+# ============================================================
+# LOGIN API
+# ============================================================
+
+@app.post("/api/login")
+async def login_account(
+    request: Request
+):
+
+    try:
+
+        payload = await request.json()
+
+        email = (
+            payload.get("email")
+            or ""
+        )
+
+        password = (
+            payload.get("password")
+            or ""
+        )
+
+        result = authenticate_user(
+            email,
+            password
+        )
+
+        if not result.get("success"):
+
+            return JSONResponse(
+                status_code=401,
+                content=result
+            )
+
+        user = result["user"]
+
+        request.session["user_id"] = (
+            user["id"]
+        )
+
+        return {
+            "success": True,
+            "message": "Login successful.",
+            "user": user
+        }
+
+    except Exception as e:
+
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e)
+            }
+        )
+
+
+# ============================================================
+# LOGOUT
+# ============================================================
+
+@app.post("/api/logout")
+async def logout_account(
+    request: Request
+):
+
+    request.session.clear()
+
+    return {
+        "success": True,
+        "message": "Logged out successfully."
+    }
+
+
+# ============================================================
+# CURRENT USER
+# ============================================================
+
+@app.get("/api/me")
+def current_user(
+    request: Request
+):
+
+    user_id = (
+        request.session.get(
+            "user_id"
+        )
+    )
+
+    if not user_id:
+
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "error": "Not authenticated."
+            }
+        )
+
+    user = get_user_by_id(
+        user_id
+    )
+
+    if not user:
+
+        request.session.clear()
+
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "error": "User account not found."
+            }
+        )
+
+    return {
+        "success": True,
+        "user": user
+    }
+
+
+# ============================================================
+# PROTECT DASHBOARD + PAYMENT APIs
+# ============================================================
+
+@app.middleware("http")
+async def authentication_middleware(
+    request: Request,
+    call_next
+):
+
+    path = request.url.path
+
+    public_paths = {
+        "/",
+        "/register",
+        "/api/login",
+        "/api/register",
+        "/health"
+    }
+
+    if (
+        path in public_paths
+        or path.startswith("/static/")
+    ):
+
+        return await call_next(
+            request
+        )
+
+    protected = (
+        path == "/dashboard"
+        or path.startswith("/api/")
+    )
+
+    if (
+        protected
+        and not request.session.get("user_id")
+    ):
+
+        if path.startswith("/api/"):
+
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "success": False,
+                    "error": (
+                        "Please login to continue."
+                    )
+                }
+            )
+
+        return RedirectResponse(
+            url="/",
+            status_code=302
+        )
+
+    return await call_next(
+        request
+    )
+
+
+# SessionMiddleware must wrap the authentication middleware
+# so request.session is available during auth checks.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    same_site="lax",
+    https_only=True
+)
 
 
 # ============================================================
@@ -657,7 +991,7 @@ def health():
             api_ready,
 
         "version":
-            "1.2.0"
+            "1.3.0"
     }
 
 
