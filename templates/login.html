@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Login | GCGW Payment Agent</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #071b36,
+            #123b68
+        );
+
+    padding: 20px;
+}
+
+.auth-card {
+
+    width: 100%;
+    max-width: 420px;
+
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 36px;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0,0,0,.22);
+}
+
+.logo {
+
+    width: 60px;
+    height: 60px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 18px;
+
+    border-radius: 14px;
+
+    background: #071b36;
+    color: white;
+
+    font-size: 22px;
+    font-weight: 800;
+}
+
+h1 {
+
+    text-align: center;
+
+    color: #071b36;
+
+    font-size: 25px;
+
+    margin-bottom: 8px;
+}
+
+.subtitle {
+
+    text-align: center;
+
+    color: #6c7887;
+
+    font-size: 13px;
+
+    margin-bottom: 28px;
+}
+
+.form-group {
+
+    margin-bottom: 17px;
+}
+
+label {
+
+    display: block;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: #344256;
+
+    margin-bottom: 7px;
+}
+
+input {
+
+    width: 100%;
+
+    padding: 12px 13px;
+
+    border: 1px solid #ccd6e2;
+
+    border-radius: 8px;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+input:focus {
+
+    border-color: #1f5f99;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(31,95,153,.10);
+}
+
+button {
+
+    width: 100%;
+
+    padding: 12px;
+
+    margin-top: 8px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #071b36;
+    color: white;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+button:hover {
+    background: #102c50;
+}
+
+button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+#errorBox {
+
+    display: none;
+
+    margin-top: 16px;
+
+    padding: 11px;
+
+    border-radius: 7px;
+
+    background: #fdeceb;
+    color: #c0392b;
+
+    font-size: 12px;
+}
+
+.success {
+
+    background: #eaf7ef !important;
+    color: #198754 !important;
+}
+
+.register-link {
+
+    margin-top: 22px;
+
+    text-align: center;
+
+    font-size: 13px;
+
+    color: #6c7887;
+}
+
+.register-link a {
+
+    color: #1f5f99;
+
+    text-decoration: none;
+
+    font-weight: 700;
+}
+
+.register-link a:hover {
+
+    text-decoration: underline;
+}
+
+.company {
+
+    margin-top: 26px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #e1e7ef;
+
+    text-align: center;
+
+    font-size: 11px;
+
+    color: #8a95a3;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="auth-card">
+
+    <div class="logo">
+        GC
+    </div>
+
+    <h1>
+        Welcome Back
+    </h1>
+
+    <div class="subtitle">
+        Login to GCGW Payment Management Agent
+    </div>
+
+
+    <form id="loginForm">
+
+        <div class="form-group">
+
+            <label for="email">
+                Email Address
+            </label>
+
+            <input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="password">
+                Password
+            </label>
+
+            <input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                required
+            >
+
+        </div>
+
+
+        <button
+            type="submit"
+            id="loginButton">
+
+            Login
+
+        </button>
+
+    </form>
+
+
+    <div id="errorBox"></div>
+
+
+    <div class="register-link">
+
+        Don't have an account?
+
+        <a href="/register">
+            Register
+        </a>
+
+    </div>
+
+
+    <div class="company">
+
+        Gopal Chavan Guniting Work
+        <br>
+        Secure Payment Management System
+
+    </div>
+
+</div>
+
+
+<script>
+
+const form =
+    document.getElementById(
+        "loginForm"
+    );
+
+const errorBox =
+    document.getElementById(
+        "errorBox"
+    );
+
+const button =
+    document.getElementById(
+        "loginButton"
+    );
+
+
+form.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        errorBox.style.display =
+            "none";
+
+        errorBox.classList.remove(
+            "success"
+        );
+
+
+        const email =
+            document.getElementById(
+                "email"
+            ).value.trim();
+
+
+        const password =
+            document.getElementById(
+                "password"
+            ).value;
+
+
+        if(!email || !password) {
+
+            showError(
+                "Please enter your email and password."
+            );
+
+            return;
+        }
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "Logging in...";
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/login",
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify({
+                                email:
+                                    email,
+
+                                password:
+                                    password
+                            })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if(!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    data.detail ||
+                    "Login failed."
+                );
+            }
+
+
+            errorBox.textContent =
+                "Login successful. Redirecting...";
+
+            errorBox.classList.add(
+                "success"
+            );
+
+            errorBox.style.display =
+                "block";
+
+
+            setTimeout(
+                () => {
+
+                    window.location.href =
+                        "/dashboard";
+
+                },
+                500
+            );
+
+
+        }
+
+        catch(error) {
+
+            showError(
+                error.message
+            );
+
+        }
+
+        finally {
+
+            button.disabled = false;
+
+            button.textContent =
+                "Login";
+
+        }
+
+    }
+);
+
+
+function showError(message) {
+
+    errorBox.textContent =
+        message;
+
+    errorBox.classList.remove(
+        "success"
+    );
+
+    errorBox.style.display =
+        "block";
+
+}
+
+</script>
+
+</body>
+
+</html>
