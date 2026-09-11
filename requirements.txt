@@ -8,3 +8,5 @@ google-genai
 langchain
 langgraph
 langchain-google-genai
+passlib[bcrypt]
+bcrypt
