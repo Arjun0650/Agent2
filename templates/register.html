@@ -35,7 +35,6 @@ body {
 }
 
 .auth-card {
-
     width: 100%;
     max-width: 460px;
 
@@ -50,28 +49,25 @@ body {
         rgba(0,0,0,.22);
 }
 
-.logo {
+.logo-container {
+    text-align: center;
+    margin-bottom: 18px;
+}
 
-    width: 60px;
-    height: 60px;
+.logo-container img {
+    width: 85px;
+    height: 85px;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    margin: 0 auto 18px;
+    object-fit: contain;
 
     border-radius: 14px;
 
-    background: #071b36;
-    color: white;
+    background: white;
 
-    font-size: 22px;
-    font-weight: 800;
+    padding: 5px;
 }
 
 h1 {
-
     text-align: center;
 
     color: #071b36;
@@ -82,7 +78,6 @@ h1 {
 }
 
 .subtitle {
-
     text-align: center;
 
     color: #6c7887;
@@ -93,12 +88,10 @@ h1 {
 }
 
 .form-group {
-
     margin-bottom: 17px;
 }
 
 label {
-
     display: block;
 
     font-size: 12px;
@@ -110,7 +103,6 @@ label {
 }
 
 input {
-
     width: 100%;
 
     padding: 12px 13px;
@@ -125,7 +117,6 @@ input {
 }
 
 input:focus {
-
     border-color: #1f5f99;
 
     box-shadow:
@@ -133,8 +124,36 @@ input:focus {
         rgba(31,95,153,.10);
 }
 
-button {
+.password-wrapper {
+    position: relative;
+}
 
+.password-wrapper input {
+    padding-right: 80px;
+}
+
+.toggle-password {
+    position: absolute;
+
+    right: 12px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    border: none;
+    background: transparent;
+
+    color: #1f5f99;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    padding: 4px;
+}
+
+.main-button {
     width: 100%;
 
     padding: 12px;
@@ -154,17 +173,16 @@ button {
     cursor: pointer;
 }
 
-button:hover {
+.main-button:hover {
     background: #102c50;
 }
 
-button:disabled {
+.main-button:disabled {
     opacity: .6;
     cursor: not-allowed;
 }
 
 #messageBox {
-
     display: none;
 
     margin-top: 16px;
@@ -180,13 +198,11 @@ button:disabled {
 }
 
 .success {
-
     background: #eaf7ef !important;
     color: #198754 !important;
 }
 
 .login-link {
-
     margin-top: 22px;
 
     text-align: center;
@@ -197,7 +213,6 @@ button:disabled {
 }
 
 .login-link a {
-
     color: #1f5f99;
 
     text-decoration: none;
@@ -206,12 +221,10 @@ button:disabled {
 }
 
 .login-link a:hover {
-
     text-decoration: underline;
 }
 
 .company {
-
     margin-top: 26px;
 
     padding-top: 18px;
@@ -226,7 +239,6 @@ button:disabled {
 }
 
 .password-note {
-
     margin-top: 6px;
 
     font-size: 11px;
@@ -242,8 +254,11 @@ button:disabled {
 
 <div class="auth-card">
 
-    <div class="logo">
-        GC
+    <div class="logo-container">
+        <img
+            src="/static/logo.png"
+            alt="GCGW Logo"
+        >
     </div>
 
     <h1>
@@ -256,7 +271,6 @@ button:disabled {
 
 
     <form id="registerForm">
-
 
         <div class="form-group">
 
@@ -296,12 +310,24 @@ button:disabled {
                 Password
             </label>
 
-            <input
-                id="password"
-                type="password"
-                placeholder="Create a password"
-                required
-            >
+            <div class="password-wrapper">
+
+                <input
+                    id="password"
+                    type="password"
+                    placeholder="Create a password"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="toggle-password"
+                    onclick="togglePassword('password', this)"
+                >
+                    Show
+                </button>
+
+            </div>
 
             <div class="password-note">
                 Minimum 8 characters
@@ -316,24 +342,35 @@ button:disabled {
                 Confirm Password
             </label>
 
-            <input
-                id="confirmPassword"
-                type="password"
-                placeholder="Re-enter your password"
-                required
-            >
+            <div class="password-wrapper">
+
+                <input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Re-enter your password"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="toggle-password"
+                    onclick="togglePassword('confirmPassword', this)"
+                >
+                    Show
+                </button>
+
+            </div>
 
         </div>
 
 
         <button
             type="submit"
-            id="registerButton">
-
+            id="registerButton"
+            class="main-button"
+        >
             Create Account
-
         </button>
-
 
     </form>
 
@@ -364,6 +401,37 @@ button:disabled {
 
 
 <script>
+
+function togglePassword(
+    inputId,
+    button
+) {
+
+    const input =
+        document.getElementById(
+            inputId
+        );
+
+    if(input.type === "password") {
+
+        input.type = "text";
+
+        button.textContent =
+            "Hide";
+
+    }
+
+    else {
+
+        input.type = "password";
+
+        button.textContent =
+            "Show";
+
+    }
+
+}
+
 
 const form =
     document.getElementById(
