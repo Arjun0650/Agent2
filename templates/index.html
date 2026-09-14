@@ -864,51 +864,537 @@ td {
     }
 }
 
-@media(max-width:750px) {
 
-    .sidebar {
+@media (max-width: 750px) {
 
-        width: 75px;
-
-        padding: 20px 10px;
+    html,
+    body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
-    .brand h2,
-    .brand p,
-    .nav span,
-    .system-status {
+    body {
+        padding-bottom: 82px;
+        background: var(--background);
+    }
 
+    /* =================================================
+       MOBILE BOTTOM NAVIGATION
+    ================================================= */
+
+    .sidebar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+
+        width: 100%;
+        height: 72px;
+
+        padding: 7px 8px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background:
+            linear-gradient(
+                90deg,
+                #071b36,
+                #0b2748
+            );
+
+        z-index: 999;
+
+        border-top:
+            1px solid rgba(255,255,255,.10);
+
+        box-shadow:
+            0 -5px 20px rgba(7,27,54,.16);
+    }
+
+    .brand,
+    .system-status {
         display: none;
     }
 
-    .brand-badge {
+    .nav {
+        width: 100%;
+        height: 100%;
 
-        width: 45px;
-        height: 45px;
+        margin: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 4px;
     }
+
+    .nav button {
+        flex: 1;
+
+        width: auto;
+        min-width: 0;
+
+        margin: 0;
+
+        padding: 9px 3px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        text-align: center;
+
+        border-radius: 9px;
+
+        font-size: 10px;
+
+        white-space: nowrap;
+    }
+
+    .nav span {
+        display: block;
+
+        font-size: 10px;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .nav button.active {
+        background:
+            rgba(255,255,255,.14);
+
+        color: white;
+    }
+
+    .download-button {
+        display: none;
+    }
+
+    /* =================================================
+       MAIN CONTENT
+    ================================================= */
 
     .main {
+        margin-left: 0;
 
-        margin-left: 75px;
+        width: 100%;
 
-        padding: 20px;
+        padding:
+            16px 14px 24px;
     }
 
-    .stats {
+    .topbar {
+        margin-bottom: 18px;
 
-        grid-template-columns:
-            1fr;
+        align-items: flex-start;
+    }
+
+    .topbar h1 {
+        font-size: 22px;
+        line-height: 1.25;
+    }
+
+    .topbar p {
+        margin-top: 5px;
+
+        font-size: 12px;
+        line-height: 1.45;
     }
 
     .date-badge {
-
         display: none;
     }
 
-    .form-grid {
+    /* =================================================
+       DASHBOARD STATS
+    ================================================= */
 
+    .stats {
         grid-template-columns:
-            1fr;
+            repeat(2, minmax(0, 1fr));
+
+        gap: 10px;
+
+        margin-bottom: 16px;
+    }
+
+    .stats .card {
+        min-width: 0;
+
+        padding:
+            15px 13px;
+    }
+
+    .stat-label {
+        margin-bottom: 7px;
+
+        font-size: 11px;
+    }
+
+    .stat-value {
+        font-size: 21px;
+
+        word-break: break-word;
+    }
+
+    .stat-note {
+        margin-top: 6px;
+
+        font-size: 9px;
+        line-height: 1.3;
+    }
+
+    /* =================================================
+       CARDS / GRID
+    ================================================= */
+
+    .grid {
+        grid-template-columns: 1fr;
+
+        gap: 14px;
+
+        margin-bottom: 14px;
+    }
+
+    .card {
+        width: 100%;
+
+        padding:
+            18px 16px;
+
+        border-radius: 14px;
+    }
+
+    .card h3 {
+        font-size: 17px;
+
+        margin-bottom: 6px;
+    }
+
+    .card-description {
+        margin-bottom: 14px;
+
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    /* =================================================
+       UPLOAD AREA
+    ================================================= */
+
+    .upload-box {
+        width: 100%;
+
+        padding:
+            24px 14px;
+
+        min-height: auto;
+
+        border-radius: 12px;
+    }
+
+    .upload-icon {
+        margin-bottom: 8px;
+
+        font-size: 30px;
+    }
+
+    .upload-box strong {
+        display: block;
+
+        font-size: 17px;
+        line-height: 1.25;
+    }
+
+    .upload-box p {
+        margin-top: 7px;
+        margin-bottom: 14px;
+
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .upload-box .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 100%;
+        max-width: 280px;
+
+        padding:
+            13px 14px;
+
+        font-size: 14px;
+    }
+
+    #selectedFiles,
+    #uploadResult {
+        overflow-wrap: anywhere;
+    }
+
+    /* =================================================
+       BUTTONS
+    ================================================= */
+
+    .btn {
+        min-height: 44px;
+
+        border-radius: 9px;
+    }
+
+    /* =================================================
+       QUEUE / ATTENTION
+    ================================================= */
+
+    .queue-item {
+        padding:
+            14px 0;
+
+        gap: 10px;
+    }
+
+    .queue-title {
+        font-size: 14px;
+        line-height: 1.35;
+    }
+
+    .queue-sub {
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .badge {
+        flex-shrink: 0;
+    }
+
+    /* =================================================
+       AGENT CARD
+    ================================================= */
+
+    .agent {
+        padding:
+            18px 16px;
+    }
+
+    .agent h3 {
+        font-size: 18px;
+    }
+
+    .chat-row {
+        display: flex;
+
+        width: 100%;
+
+        gap: 8px;
+
+        align-items: stretch;
+    }
+
+    .chat-row input {
+        width: 100%;
+        min-width: 0;
+
+        flex: 1;
+
+        padding:
+            12px;
+
+        font-size: 16px;
+    }
+
+    .chat-row button {
+        flex-shrink: 0;
+
+        min-width: 68px;
+
+        padding:
+            0 12px;
+
+        font-size: 13px;
+    }
+
+    #agentAnswer,
+    #fullAgentAnswer {
+        overflow-wrap: anywhere;
+        line-height: 1.5;
+    }
+
+    /* =================================================
+       FORMS
+    ================================================= */
+
+    .form-grid {
+        grid-template-columns: 1fr;
+
+        gap: 0;
+    }
+
+    .form-group.full {
+        grid-column: 1;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        max-width: 100%;
+
+        font-size: 16px;
+    }
+
+    .form-group input,
+    .form-group select {
+        min-height: 44px;
+    }
+
+    /* =================================================
+       MODAL
+    ================================================= */
+
+    .modal-overlay {
+        padding:
+            12px;
+    }
+
+    .modal {
+        width: 100%;
+        max-width: none;
+
+        max-height: 92vh;
+
+        border-radius: 14px;
+    }
+
+    .modal-header {
+        padding:
+            16px 17px;
+    }
+
+    .modal-header h2 {
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding:
+            17px;
+    }
+
+    .modal-actions {
+        padding:
+            14px 17px;
+
+        gap: 8px;
+
+        flex-wrap: wrap;
+    }
+
+    .modal-actions .btn {
+        flex: 1;
+
+        min-width: 120px;
+
+        margin-top: 0;
+    }
+
+    /* =================================================
+       TABLES
+    ================================================= */
+
+    .table-wrapper {
+        width: 100%;
+
+        overflow-x: auto;
+
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 680px;
+    }
+}
+
+
+/* =====================================================
+   EXTRA SMALL PHONES
+===================================================== */
+
+@media (max-width: 390px) {
+
+    body {
+        padding-bottom: 78px;
+    }
+
+    .sidebar {
+        height: 68px;
+    }
+
+    .main {
+        padding:
+            13px 11px 22px;
+    }
+
+    .topbar h1 {
+        font-size: 20px;
+    }
+
+    .card {
+        padding:
+            16px 13px;
+    }
+
+    .stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 8px;
+    }
+
+    .stats .card {
+        padding:
+            13px 10px;
+    }
+
+    .stat-label {
+        font-size: 10px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .stat-note {
+        font-size: 8px;
+    }
+
+    .nav button {
+        padding:
+            8px 2px;
+    }
+
+    .nav span {
+        font-size: 9px;
+    }
+
+    .chat-row {
+        flex-direction: column;
+    }
+
+    .chat-row button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .upload-box {
+        padding:
+            22px 12px;
     }
 }
 
