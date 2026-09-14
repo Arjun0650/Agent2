@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from pathlib import Path
 from datetime import date, datetime
 
@@ -951,7 +952,8 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
     same_site="lax",
-    https_only=True
+    https_only=True,
+    max_age=60 * 60 * 24 * 30
 )
 
 
@@ -1842,6 +1844,269 @@ async def upload_payment_screenshots(
         "results":
             results
     }
+
+
+
+# ============================================================
+# QUICK CASH ENTRY
+# ============================================================
+
+@app.post("/api/cash-entry")
+async def add_cash_entry(
+    payload: dict
+):
+
+    """
+    Add a manually entered cash payment directly to
+    the approved All Payments sheet.
+
+    Cash payments do not require screenshot processing
+    or AI review because the user is entering the
+    financial details manually.
+    """
+
+    try:
+
+        amount = safe_amount(
+            payload.get("amount")
+        )
+
+        paid_to = clean_text(
+            payload.get("paid_to")
+        )
+
+        project = clean_text(
+            payload.get("project")
+        )
+
+        category = clean_text(
+            payload.get("category")
+        )
+
+        payment_date = normalize_date(
+            payload.get("date")
+        )
+
+
+        if amount <= 0:
+
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error":
+                        "Amount must be greater than zero."
+                }
+            )
+
+
+        if not paid_to:
+
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error":
+                        "Paid To is required."
+                }
+            )
+
+
+        if not project:
+
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error":
+                        "Project is required."
+                }
+            )
+
+
+        if not category:
+
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error":
+                        "Category is required."
+                }
+            )
+
+
+        if not payment_date:
+
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error":
+                        "Enter a valid payment date."
+                }
+            )
+
+
+        now = datetime.now()
+
+        transaction_id = (
+            "CASH-"
+            + payment_date.strftime("%Y%m%d")
+            + "-"
+            + now.strftime("%H%M%S")
+            + "-"
+            + uuid.uuid4().hex[:4].upper()
+        )
+
+
+        workbook = load_gcgw_workbook()
+
+        sheet = workbook[
+            "All Payments"
+        ]
+
+        next_row = (
+            sheet.max_row + 1
+        )
+
+
+        # ----------------------------------------------------
+        # All Payments column structure:
+        #
+        # 1  Transaction ID
+        # 2  Date
+        # 3  Time
+        # 4  Amount
+        # 5  Paid To
+        # 6  Project
+        # 7  Category
+        # 8  Purpose / Remark
+        # 9  Payment Mode
+        # 10 Bank / UPI App
+        # 11 Reference No.
+        # 12 Screenshot File
+        # 13 AI Confidence %
+        # 14 Status
+        # ----------------------------------------------------
+
+        sheet.cell(
+            next_row,
+            1
+        ).value = transaction_id
+
+        sheet.cell(
+            next_row,
+            2
+        ).value = payment_date
+
+        sheet.cell(
+            next_row,
+            3
+        ).value = now.strftime(
+            "%H:%M:%S"
+        )
+
+        sheet.cell(
+            next_row,
+            4
+        ).value = amount
+
+        sheet.cell(
+            next_row,
+            5
+        ).value = paid_to
+
+        sheet.cell(
+            next_row,
+            6
+        ).value = project
+
+        sheet.cell(
+            next_row,
+            7
+        ).value = category
+
+        # Purpose intentionally blank.
+        # Category is used to identify why the cash was paid.
+        sheet.cell(
+            next_row,
+            8
+        ).value = ""
+
+        sheet.cell(
+            next_row,
+            9
+        ).value = "Cash"
+
+        sheet.cell(
+            next_row,
+            10
+        ).value = ""
+
+        sheet.cell(
+            next_row,
+            11
+        ).value = transaction_id
+
+        sheet.cell(
+            next_row,
+            12
+        ).value = ""
+
+        # No AI was used for a manual cash entry.
+        sheet.cell(
+            next_row,
+            13
+        ).value = ""
+
+        sheet.cell(
+            next_row,
+            14
+        ).value = "Approved"
+
+
+        workbook.save(
+            WORKBOOK_FILE
+        )
+
+        workbook.close()
+
+
+        return {
+            "success": True,
+            "message":
+                "Cash payment added successfully.",
+            "transaction_id":
+                transaction_id,
+            "amount":
+                amount,
+            "paid_to":
+                paid_to,
+            "project":
+                project,
+            "category":
+                category,
+            "date":
+                payment_date.isoformat(),
+            "payment_mode":
+                "Cash",
+            "status":
+                "Approved"
+        }
+
+
+    except Exception as e:
+
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error":
+                    "Could not save cash payment: "
+                    + str(e)
+            }
+        )
 
 
 # ============================================================
