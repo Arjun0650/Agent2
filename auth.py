@@ -1,378 +1,140 @@
+import os
+import re
+import hmac
 import sqlite3
 import hashlib
-import hmac
 import secrets
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime
 
-
-# ============================================================
-# PATHS
-# ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-
 DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-DATA_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-USERS_DB = (
-    DATA_DIR /
-    "users.db"
-)
+DB_FILE = DATA_DIR / "users.db"
 
 
-# ============================================================
-# PASSWORD SETTINGS
-# ============================================================
-
-MIN_PASSWORD_LENGTH = 8
-MAX_PASSWORD_LENGTH = 64
-
-PBKDF2_ITERATIONS = 310000
+def normalize_email(value):
+    return str(value or "").strip().lower()
 
 
-# ============================================================
-# DATABASE
-# ============================================================
-
-def get_connection():
-
-    connection = sqlite3.connect(
-        USERS_DB
+def clean_name(value):
+    return " ".join(
+        str(value or "").strip().split()
     )
 
-    connection.row_factory = (
-        sqlite3.Row
-    )
 
-    return connection
-
-
-def init_user_database():
-
-    connection = (
-        get_connection()
-    )
-
-    cursor = (
-        connection.cursor()
-    )
-
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            full_name TEXT NOT NULL,
-
-            email TEXT NOT NULL UNIQUE,
-
-            password_hash TEXT NOT NULL,
-
-            created_at TEXT NOT NULL,
-
-            is_active INTEGER NOT NULL DEFAULT 1
-
+def valid_email(email):
+    return bool(
+        re.fullmatch(
+            r"[^@\s]+@[^@\s]+\.[^@\s]+",
+            email
         )
-        """
-    )
-
-    connection.commit()
-
-    connection.close()
-
-
-init_user_database()
-
-
-# ============================================================
-# EMAIL
-# ============================================================
-
-def clean_email(email):
-
-    if not email:
-        return ""
-
-    return (
-        str(email)
-        .strip()
-        .lower()
     )
 
 
-# ============================================================
-# PASSWORD VALIDATION
-# ============================================================
+def initialize_database():
 
-def validate_password(password):
+    with sqlite3.connect(DB_FILE) as conn:
 
-    password = str(
-        password or ""
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+
+        conn.commit()
+
+
+initialize_database()
+
+
+def hash_password(
+    password,
+    salt_hex=None
+):
+
+    password = str(password or "")
+
+    if salt_hex:
+        salt = bytes.fromhex(
+            salt_hex
+        )
+    else:
+        salt = secrets.token_bytes(
+            16
+        )
+
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        200_000
     )
-
-    if not password:
-
-        return {
-            "success": False,
-            "error": (
-                "Password is required."
-            )
-        }
-
-
-    if len(password) < MIN_PASSWORD_LENGTH:
-
-        return {
-            "success": False,
-            "error": (
-                "Password must contain "
-                "at least 8 characters."
-            )
-        }
-
-
-    if len(password) > MAX_PASSWORD_LENGTH:
-
-        return {
-            "success": False,
-            "error": (
-                "Password must be "
-                "64 characters or fewer."
-            )
-        }
-
 
     return {
-        "success": True
+        "hash": digest.hex(),
+        "salt": salt.hex()
     }
 
 
-# ============================================================
-# PASSWORD HASHING
-# ============================================================
+def public_user(row):
 
-def hash_password(password):
+    if not row:
+        return None
+
+    return {
+        "id": row["id"],
+        "full_name":
+            row["full_name"],
+        "email":
+            row["email"]
+    }
+
+
+def environment_admin():
+
+    email = normalize_email(
+        os.environ.get(
+            "GCGW_ADMIN_EMAIL"
+        )
+    )
 
     password = str(
-        password
+        os.environ.get(
+            "GCGW_ADMIN_PASSWORD",
+            ""
+        )
     )
 
-    salt = secrets.token_hex(
-        16
+    full_name = clean_name(
+        os.environ.get(
+            "GCGW_ADMIN_NAME",
+            "GCGW Admin"
+        )
     )
 
-
-    password_hash = (
-        hashlib.pbkdf2_hmac(
-            "sha256",
-            password.encode(
-                "utf-8"
-            ),
-            salt.encode(
-                "utf-8"
-            ),
-            PBKDF2_ITERATIONS
-        )
-        .hex()
-    )
-
-
-    return (
-        f"pbkdf2_sha256$"
-        f"{PBKDF2_ITERATIONS}$"
-        f"{salt}$"
-        f"{password_hash}"
-    )
-
-
-# ============================================================
-# VERIFY PASSWORD
-# ============================================================
-
-def verify_password(
-    plain_password,
-    stored_hash
-):
-
-    try:
-
-        parts = str(
-            stored_hash
-        ).split("$")
-
-
-        if len(parts) != 4:
-            return False
-
-
-        algorithm = parts[0]
-
-        iterations = int(
-            parts[1]
-        )
-
-        salt = parts[2]
-
-        expected_hash = (
-            parts[3]
-        )
-
-
-        if algorithm != "pbkdf2_sha256":
-            return False
-
-
-        calculated_hash = (
-            hashlib.pbkdf2_hmac(
-                "sha256",
-                str(
-                    plain_password
-                ).encode(
-                    "utf-8"
-                ),
-                salt.encode(
-                    "utf-8"
-                ),
-                iterations
-            )
-            .hex()
-        )
-
-
-        return hmac.compare_digest(
-            calculated_hash,
-            expected_hash
-        )
-
-
-    except Exception:
-
-        return False
-
-
-# ============================================================
-# GET USER BY EMAIL
-# ============================================================
-
-def get_user_by_email(email):
-
-    email = clean_email(
-        email
-    )
-
-
-    if not email:
+    if not email or not password:
         return None
 
-
-    connection = (
-        get_connection()
-    )
-
-    cursor = (
-        connection.cursor()
-    )
-
-
-    cursor.execute(
-        """
-        SELECT
-            id,
-            full_name,
+    return {
+        "id": "gcgw-admin",
+        "full_name":
+            full_name or "GCGW Admin",
+        "email":
             email,
-            password_hash,
-            created_at,
-            is_active
+        "password":
+            password
+    }
 
-        FROM users
-
-        WHERE email = ?
-        """,
-        (
-            email,
-        )
-    )
-
-
-    row = (
-        cursor.fetchone()
-    )
-
-    connection.close()
-
-
-    if not row:
-        return None
-
-
-    return dict(
-        row
-    )
-
-
-# ============================================================
-# GET USER BY ID
-# ============================================================
-
-def get_user_by_id(user_id):
-
-    if not user_id:
-        return None
-
-
-    connection = (
-        get_connection()
-    )
-
-    cursor = (
-        connection.cursor()
-    )
-
-
-    cursor.execute(
-        """
-        SELECT
-            id,
-            full_name,
-            email,
-            created_at,
-            is_active
-
-        FROM users
-
-        WHERE id = ?
-        """,
-        (
-            user_id,
-        )
-    )
-
-
-    row = (
-        cursor.fetchone()
-    )
-
-    connection.close()
-
-
-    if not row:
-        return None
-
-
-    return dict(
-        row
-    )
-
-
-# ============================================================
-# REGISTER USER
-# ============================================================
 
 def register_user(
     full_name,
@@ -380,332 +142,300 @@ def register_user(
     password
 ):
 
-    full_name = (
-        str(
-            full_name or ""
-        )
-        .strip()
+    full_name = clean_name(
+        full_name
     )
 
-
-    email = clean_email(
+    email = normalize_email(
         email
     )
-
 
     password = str(
         password or ""
     )
 
 
-    # --------------------------------------------------------
-    # NAME
-    # --------------------------------------------------------
-
-    if len(full_name) < 2:
+    if not full_name:
 
         return {
             "success": False,
-            "error": (
-                "Please enter your full name."
-            )
+            "error":
+                "Full name is required."
         }
 
 
-    # --------------------------------------------------------
-    # EMAIL
-    # --------------------------------------------------------
-
-    if not email:
+    if not valid_email(email):
 
         return {
             "success": False,
-            "error": (
-                "Email address is required."
-            )
+            "error":
+                "Enter a valid email address."
         }
 
+
+    if len(password) < 8:
+
+        return {
+            "success": False,
+            "error":
+                "Password must contain at least 8 characters."
+        }
+
+
+    admin = environment_admin()
 
     if (
-        "@" not in email
-        or
-        "." not in email
+        admin
+        and
+        hmac.compare_digest(
+            email,
+            admin["email"]
+        )
     ):
 
         return {
             "success": False,
-            "error": (
-                "Please enter a valid "
-                "email address."
-            )
+            "error":
+                "This email is already registered."
         }
 
 
-    # --------------------------------------------------------
-    # PASSWORD
-    # --------------------------------------------------------
-
-    password_check = (
-        validate_password(
+    password_data = (
+        hash_password(
             password
         )
     )
 
 
-    if not password_check.get(
-        "success"
-    ):
-
-        return (
-            password_check
-        )
-
-
-    # --------------------------------------------------------
-    # EXISTING ACCOUNT
-    # --------------------------------------------------------
-
-    existing_user = (
-        get_user_by_email(
-            email
-        )
-    )
-
-
-    if existing_user:
-
-        return {
-            "success": False,
-            "error": (
-                "An account already exists "
-                "with this email address."
-            )
-        }
-
-
-    # --------------------------------------------------------
-    # CREATE PASSWORD HASH
-    # --------------------------------------------------------
-
     try:
 
-        password_hash = (
-            hash_password(
-                password
-            )
-        )
+        with sqlite3.connect(
+            DB_FILE
+        ) as conn:
 
-    except Exception:
+            conn.row_factory = sqlite3.Row
+
+            cursor = conn.execute(
+                """
+                INSERT INTO users
+                (
+                    full_name,
+                    email,
+                    password_hash,
+                    salt,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    full_name,
+                    email,
+                    password_data[
+                        "hash"
+                    ],
+                    password_data[
+                        "salt"
+                    ],
+                    datetime.now()
+                    .isoformat(
+                        timespec="seconds"
+                    )
+                )
+            )
+
+            conn.commit()
+
+            row = conn.execute(
+                """
+                SELECT
+                    id,
+                    full_name,
+                    email
+                FROM users
+                WHERE id = ?
+                """,
+                (
+                    cursor.lastrowid,
+                )
+            ).fetchone()
+
 
         return {
-            "success": False,
-            "error": (
-                "Could not create your account. "
-                "Please try again."
-            )
+            "success": True,
+            "user":
+                public_user(row)
         }
-
-
-    # --------------------------------------------------------
-    # DATE
-    # --------------------------------------------------------
-
-    created_at = (
-        datetime.now(
-            timezone.utc
-        )
-        .isoformat()
-    )
-
-
-    # --------------------------------------------------------
-    # INSERT USER
-    # --------------------------------------------------------
-
-    connection = (
-        get_connection()
-    )
-
-    cursor = (
-        connection.cursor()
-    )
-
-
-    try:
-
-        cursor.execute(
-            """
-            INSERT INTO users (
-
-                full_name,
-                email,
-                password_hash,
-                created_at,
-                is_active
-
-            )
-
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                full_name,
-                email,
-                password_hash,
-                created_at,
-                1
-            )
-        )
-
-
-        connection.commit()
-
-
-        user_id = (
-            cursor.lastrowid
-        )
 
 
     except sqlite3.IntegrityError:
 
-        connection.close()
-
         return {
             "success": False,
-            "error": (
-                "An account already exists "
-                "with this email address."
-            )
+            "error":
+                "An account with this email already exists."
         }
 
-
-    except Exception:
-
-        connection.close()
-
-        return {
-            "success": False,
-            "error": (
-                "Could not create your account. "
-                "Please try again."
-            )
-        }
-
-
-    connection.close()
-
-
-    return {
-
-        "success": True,
-
-        "user": {
-
-            "id":
-                user_id,
-
-            "full_name":
-                full_name,
-
-            "email":
-                email
-        }
-    }
-
-
-# ============================================================
-# LOGIN
-# ============================================================
 
 def authenticate_user(
     email,
     password
 ):
 
-    email = clean_email(
+    email = normalize_email(
         email
     )
-
 
     password = str(
         password or ""
     )
 
 
-    if not email or not password:
+    admin = environment_admin()
+
+    if (
+        admin
+        and
+        hmac.compare_digest(
+            email,
+            admin["email"]
+        )
+        and
+        hmac.compare_digest(
+            password,
+            admin["password"]
+        )
+    ):
 
         return {
-            "success": False,
-            "error": (
-                "Please enter your "
-                "email and password."
-            )
+            "success": True,
+            "user": {
+                "id":
+                    admin["id"],
+                "full_name":
+                    admin[
+                        "full_name"
+                    ],
+                "email":
+                    admin["email"]
+            }
         }
 
 
-    user = (
-        get_user_by_email(
-            email
+    with sqlite3.connect(
+        DB_FILE
+    ) as conn:
+
+        conn.row_factory = sqlite3.Row
+
+        row = conn.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE lower(email) = lower(?)
+            LIMIT 1
+            """,
+            (
+                email,
+            )
+        ).fetchone()
+
+
+    if not row:
+
+        return {
+            "success": False,
+            "error":
+                "Invalid email or password."
+        }
+
+
+    password_data = (
+        hash_password(
+            password,
+            row["salt"]
         )
     )
 
 
-    if not user:
-
-        return {
-            "success": False,
-            "error": (
-                "Invalid email or password."
-            )
-        }
-
-
-    if not user.get(
-        "is_active"
+    if not hmac.compare_digest(
+        password_data["hash"],
+        row["password_hash"]
     ):
 
         return {
             "success": False,
-            "error": (
-                "This account is "
-                "currently inactive."
-            )
-        }
-
-
-    password_valid = (
-        verify_password(
-            password,
-            user.get(
-                "password_hash",
-                ""
-            )
-        )
-    )
-
-
-    if not password_valid:
-
-        return {
-            "success": False,
-            "error": (
+            "error":
                 "Invalid email or password."
-            )
         }
 
 
     return {
-
         "success": True,
-
-        "user": {
-
-            "id":
-                user["id"],
-
-            "full_name":
-                user["full_name"],
-
-            "email":
-                user["email"]
-        }
+        "user":
+            public_user(row)
     }
+
+
+def get_user_by_id(
+    user_id
+):
+
+    admin = environment_admin()
+
+    if (
+        admin
+        and
+        str(user_id)
+        ==
+        str(admin["id"])
+    ):
+
+        return {
+            "id":
+                admin["id"],
+            "full_name":
+                admin[
+                    "full_name"
+                ],
+            "email":
+                admin["email"]
+        }
+
+
+    try:
+
+        numeric_id = int(
+            user_id
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return None
+
+
+    with sqlite3.connect(
+        DB_FILE
+    ) as conn:
+
+        conn.row_factory = sqlite3.Row
+
+        row = conn.execute(
+            """
+            SELECT
+                id,
+                full_name,
+                email
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+            """,
+            (
+                numeric_id,
+            )
+        ).fetchone()
+
+
+    return public_user(row)
