@@ -1,570 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Login | GCGW Payment Agent</title>
-
 <style>
-
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+*{box-sizing:border-box;margin:0;padding:0}
+html{min-height:100%;background:#071b36}
+body{font-family:Arial,Helvetica,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#071b36,#123b68);padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}
+.auth-card{width:100%;max-width:420px;background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.logo-container{text-align:center;margin-bottom:16px}
+.logo-container img{width:82px;height:82px;object-fit:contain;border-radius:14px;background:#fff;padding:4px}
+h1{text-align:center;color:#071b36;font-size:27px;margin-bottom:8px}
+.subtitle{text-align:center;color:#6c7887;font-size:14px;line-height:1.45;margin-bottom:28px}
+.form-group{margin-bottom:18px}
+label{display:block;font-size:13px;font-weight:700;color:#344256;margin-bottom:8px}
+input{width:100%;min-height:50px;padding:13px 14px;border:1px solid #ccd6e2;border-radius:10px;font-size:16px;outline:none;background:#fff}
+input:focus{border-color:#1f5f99;box-shadow:0 0 0 3px rgba(31,95,153,.10)}
+.password-wrapper{position:relative}
+.password-wrapper input{padding-right:78px}
+.toggle-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:transparent;color:#1f5f99;font-size:13px;font-weight:700;cursor:pointer;padding:5px}
+.remember-row{display:flex;align-items:center;gap:9px;margin:-2px 0 18px;color:#6c7887;font-size:12px}
+.remember-row input{width:18px;min-height:18px;height:18px;padding:0}
+.main-button{width:100%;min-height:52px;padding:12px;border:none;border-radius:10px;background:#071b36;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.main-button:hover{background:#102c50}
+.main-button:disabled{opacity:.6;cursor:not-allowed}
+#errorBox{display:none;margin-top:16px;padding:12px 13px;border-radius:9px;background:#fdeceb;color:#c0392b;font-size:13px;line-height:1.4}
+.success{background:#eaf7ef!important;color:#198754!important}
+.register-link{margin-top:23px;text-align:center;font-size:14px;color:#6c7887}
+.register-link a{color:#1f5f99;text-decoration:none;font-weight:700}
+.company{margin-top:25px;padding-top:18px;border-top:1px solid #e1e7ef;text-align:center;font-size:12px;line-height:1.45;color:#8a95a3}
+@media(max-width:480px){
+body{align-items:flex-start;padding-top:max(42px,env(safe-area-inset-top))}
+.auth-card{padding:25px 20px;border-radius:18px}
+.logo-container img{width:76px;height:76px}
+h1{font-size:26px}
 }
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    min-height: 100vh;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background:
-        linear-gradient(
-            135deg,
-            #071b36,
-            #123b68
-        );
-
-    padding: 20px;
-}
-
-.auth-card {
-
-    width: 100%;
-    max-width: 420px;
-
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 36px;
-
-    box-shadow:
-        0 20px 60px
-        rgba(0,0,0,.22);
-}
-
-.logo-container {
-
-    text-align: center;
-
-    margin-bottom: 18px;
-}
-
-.logo-container img {
-
-    width: 85px;
-    height: 85px;
-
-    object-fit: contain;
-
-    border-radius: 14px;
-
-    background: white;
-
-    padding: 5px;
-}
-
-h1 {
-
-    text-align: center;
-
-    color: #071b36;
-
-    font-size: 25px;
-
-    margin-bottom: 8px;
-}
-
-.subtitle {
-
-    text-align: center;
-
-    color: #6c7887;
-
-    font-size: 13px;
-
-    margin-bottom: 28px;
-}
-
-.form-group {
-
-    margin-bottom: 17px;
-}
-
-label {
-
-    display: block;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    color: #344256;
-
-    margin-bottom: 7px;
-}
-
-input {
-
-    width: 100%;
-
-    padding: 12px 13px;
-
-    border: 1px solid #ccd6e2;
-
-    border-radius: 8px;
-
-    font-size: 14px;
-
-    outline: none;
-}
-
-input:focus {
-
-    border-color: #1f5f99;
-
-    box-shadow:
-        0 0 0 3px
-        rgba(31,95,153,.10);
-}
-
-.password-wrapper {
-
-    position: relative;
-}
-
-.password-wrapper input {
-
-    padding-right: 80px;
-}
-
-.toggle-password {
-
-    position: absolute;
-
-    right: 12px;
-    top: 50%;
-
-    transform: translateY(-50%);
-
-    border: none;
-    background: transparent;
-
-    color: #1f5f99;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    cursor: pointer;
-
-    padding: 4px;
-}
-
-.main-button {
-
-    width: 100%;
-
-    padding: 12px;
-
-    margin-top: 8px;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background: #071b36;
-    color: white;
-
-    font-size: 14px;
-    font-weight: 700;
-
-    cursor: pointer;
-}
-
-.main-button:hover {
-
-    background: #102c50;
-}
-
-.main-button:disabled {
-
-    opacity: .6;
-
-    cursor: not-allowed;
-}
-
-#errorBox {
-
-    display: none;
-
-    margin-top: 16px;
-
-    padding: 11px;
-
-    border-radius: 7px;
-
-    background: #fdeceb;
-    color: #c0392b;
-
-    font-size: 12px;
-}
-
-.success {
-
-    background: #eaf7ef !important;
-    color: #198754 !important;
-}
-
-.register-link {
-
-    margin-top: 22px;
-
-    text-align: center;
-
-    font-size: 13px;
-
-    color: #6c7887;
-}
-
-.register-link a {
-
-    color: #1f5f99;
-
-    text-decoration: none;
-
-    font-weight: 700;
-}
-
-.register-link a:hover {
-
-    text-decoration: underline;
-}
-
-.company {
-
-    margin-top: 26px;
-
-    padding-top: 18px;
-
-    border-top: 1px solid #e1e7ef;
-
-    text-align: center;
-
-    font-size: 11px;
-
-    color: #8a95a3;
-}
-
 </style>
-
 </head>
-
 <body>
-
 <div class="auth-card">
-
-    <div class="logo-container">
-
-        <img
-            src="/static/logo.png"
-            alt="GCGW Logo"
-        >
-
-    </div>
-
-    <h1>
-        Welcome Back
-    </h1>
-
-    <div class="subtitle">
-        Login to GCGW Payment Management Agent
-    </div>
-
-
-    <form id="loginForm">
-
-        <div class="form-group">
-
-            <label for="email">
-                Email Address
-            </label>
-
-            <input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="password">
-                Password
-            </label>
-
-            <div class="password-wrapper">
-
-                <input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                >
-
-                <button
-                    type="button"
-                    class="toggle-password"
-                    onclick="togglePassword()"
-                >
-                    Show
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <button
-            type="submit"
-            id="loginButton"
-            class="main-button"
-        >
-            Login
-        </button>
-
-    </form>
-
-
-    <div id="errorBox"></div>
-
-
-    <div class="register-link">
-
-        Don't have an account?
-
-        <a href="/register">
-            Register
-        </a>
-
-    </div>
-
-
-    <div class="company">
-
-        Gopal Chavan Guniting Work
-        <br>
-        Secure Payment Management System
-
-    </div>
-
+<div class="logo-container"><img src="/static/logo.png" alt="GCGW Logo"></div>
+<h1>Welcome Back</h1>
+<div class="subtitle">Login with the account you registered earlier.</div>
+<form id="loginForm">
+<div class="form-group">
+<label for="email">Email Address</label>
+<input id="email" name="email" type="email" placeholder="Enter your email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
 </div>
-
-
+<div class="form-group">
+<label for="password">Password</label>
+<div class="password-wrapper">
+<input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+<button type="button" class="toggle-password" onclick="togglePassword()">Show</button>
+</div>
+</div>
+<label class="remember-row">
+<input id="rememberEmail" type="checkbox" checked>
+Remember my email on this device
+</label>
+<button type="submit" id="loginButton" class="main-button">Login</button>
+</form>
+<div id="errorBox"></div>
+<div class="register-link">Don't have an account? <a href="/register">Register</a></div>
+<div class="company">Gopal Chavan Guniting Work<br>Secure Payment Management System</div>
+</div>
 <script>
-
-function togglePassword() {
-
-    const input =
-        document.getElementById(
-            "password"
-        );
-
-    const button =
-        document.querySelector(
-            ".toggle-password"
-        );
-
-
-    if(input.type === "password") {
-
-        input.type = "text";
-
-        button.textContent =
-            "Hide";
-
-    }
-
-    else {
-
-        input.type = "password";
-
-        button.textContent =
-            "Show";
-
-    }
-
+function togglePassword(){
+const input=document.getElementById("password");
+const button=document.querySelector(".toggle-password");
+if(input.type==="password"){input.type="text";button.textContent="Hide";}
+else{input.type="password";button.textContent="Show";}
 }
-
-
-const form =
-    document.getElementById(
-        "loginForm"
-    );
-
-const errorBox =
-    document.getElementById(
-        "errorBox"
-    );
-
-const button =
-    document.getElementById(
-        "loginButton"
-    );
-
-
-form.addEventListener(
-    "submit",
-    async function(event) {
-
-        event.preventDefault();
-
-
-        errorBox.style.display =
-            "none";
-
-        errorBox.classList.remove(
-            "success"
-        );
-
-
-        const email =
-            document.getElementById(
-                "email"
-            ).value.trim();
-
-
-        const password =
-            document.getElementById(
-                "password"
-            ).value;
-
-
-        if(!email || !password) {
-
-            showError(
-                "Please enter your email and password."
-            );
-
-            return;
-        }
-
-
-        button.disabled = true;
-
-        button.textContent =
-            "Logging in...";
-
-
-        try {
-
-            const response =
-                await fetch(
-                    "/api/login",
-                    {
-                        method:
-                            "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify({
-                                email:
-                                    email,
-
-                                password:
-                                    password
-                            })
-                    }
-                );
-
-
-            const data =
-                await response.json();
-
-
-            if(!response.ok) {
-
-                throw new Error(
-                    data.error ||
-                    data.detail ||
-                    "Login failed."
-                );
-            }
-
-
-            errorBox.textContent =
-                "Login successful. Redirecting...";
-
-            errorBox.classList.add(
-                "success"
-            );
-
-            errorBox.style.display =
-                "block";
-
-
-            setTimeout(
-                () => {
-
-                    window.location.href =
-                        "/dashboard";
-
-                },
-                500
-            );
-
-
-        }
-
-        catch(error) {
-
-            showError(
-                error.message
-            );
-
-        }
-
-        finally {
-
-            button.disabled = false;
-
-            button.textContent =
-                "Login";
-
-        }
-
-    }
-);
-
-
-function showError(message) {
-
-    errorBox.textContent =
-        message;
-
-    errorBox.classList.remove(
-        "success"
-    );
-
-    errorBox.style.display =
-        "block";
-
+const form=document.getElementById("loginForm");
+const errorBox=document.getElementById("errorBox");
+const button=document.getElementById("loginButton");
+const emailInput=document.getElementById("email");
+const rememberEmail=document.getElementById("rememberEmail");
+const savedEmail=localStorage.getItem("gcgw_login_email");
+if(savedEmail){emailInput.value=savedEmail;}
+form.addEventListener("submit",async function(event){
+event.preventDefault();
+errorBox.style.display="none";
+errorBox.classList.remove("success");
+const email=emailInput.value.trim();
+const password=document.getElementById("password").value;
+if(!email||!password){showError("Please enter your email and password.");return;}
+button.disabled=true;
+button.textContent="Logging in...";
+try{
+const response=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})});
+const data=await response.json();
+if(!response.ok){throw new Error(data.error||data.detail||"Login failed.");}
+if(rememberEmail.checked){localStorage.setItem("gcgw_login_email",email);}
+else{localStorage.removeItem("gcgw_login_email");}
+errorBox.textContent="Login successful. Redirecting...";
+errorBox.classList.add("success");
+errorBox.style.display="block";
+setTimeout(()=>{window.location.href="/dashboard";},300);
+}catch(error){showError(error.message);}
+finally{button.disabled=false;button.textContent="Login";}
+});
+function showError(message){
+errorBox.textContent=message;
+errorBox.classList.remove("success");
+errorBox.style.display="block";
 }
-
 </script>
-
 </body>
-
 </html>
