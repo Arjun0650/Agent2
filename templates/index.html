@@ -627,13 +627,12 @@ td {
 ===================================================== */
 
 .section {
-
-    display: none;
+    display: block;
+    scroll-margin-top: 92px;
 }
 
-.section.active {
-
-    display: block;
+.section + .section {
+    margin-top: 22px;
 }
 
 .empty {
@@ -844,6 +843,182 @@ td {
     border-radius: 7px;
 
     font-size: 12px;
+}
+
+
+
+
+/* =====================================================
+   CASH ENTRY
+===================================================== */
+
+.cash-entry-card {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 22px;
+    border: 1px solid #dfe7ef;
+}
+
+.cash-entry-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--green);
+}
+
+.cash-entry-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.cash-entry-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.cash-entry-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #eaf7f0;
+    color: var(--green);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.cash-entry-header h3 {
+    margin-bottom: 4px;
+}
+
+.cash-entry-header p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.cash-mode-badge {
+    flex-shrink: 0;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #eaf7f0;
+    color: #167347;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.cash-form {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+.cash-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344256;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.cash-field input,
+.cash-field select {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #ccd6e2;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: .2s;
+}
+
+.cash-field input:focus,
+.cash-field select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(31,95,153,.10);
+}
+
+.cash-amount-wrap {
+    position: relative;
+}
+
+.cash-amount-symbol {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--navy);
+    font-weight: 800;
+    pointer-events: none;
+}
+
+.cash-amount-wrap input {
+    padding-left: 29px;
+    font-size: 16px;
+    font-weight: 750;
+}
+
+.cash-submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.cash-save-button {
+    min-width: 185px;
+    min-height: 44px;
+    margin-top: 0;
+    background: var(--green);
+    color: white;
+}
+
+.cash-save-button:hover {
+    background: #157347;
+}
+
+.cash-save-button:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+
+.cash-result {
+    display: none;
+    flex: 1;
+    padding: 11px 13px;
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.cash-result.success {
+    display: block;
+    background: #eaf7f0;
+    color: #16633f;
+    border: 1px solid #c9ebd8;
+}
+
+.cash-result.error {
+    display: block;
+    background: #fdeceb;
+    color: var(--red);
+    border: 1px solid #f2cbc7;
 }
 
 
@@ -1140,6 +1315,96 @@ td {
         overflow-wrap: anywhere;
     }
 
+
+    /* =================================================
+       CASH ENTRY - MOBILE FIRST
+    ================================================= */
+
+    .cash-entry-card {
+        margin-bottom: 14px;
+        padding: 17px 15px 16px;
+        border-radius: 15px;
+    }
+
+    .cash-entry-card::before {
+        width: 3px;
+    }
+
+    .cash-entry-header {
+        align-items: center;
+        margin-bottom: 16px;
+        gap: 10px;
+    }
+
+    .cash-entry-heading {
+        min-width: 0;
+        gap: 10px;
+    }
+
+    .cash-entry-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        font-size: 20px;
+    }
+
+    .cash-entry-header h3 {
+        font-size: 17px;
+        line-height: 1.25;
+    }
+
+    .cash-entry-header p {
+        font-size: 11px;
+        line-height: 1.35;
+    }
+
+    .cash-mode-badge {
+        padding: 6px 9px;
+        font-size: 10px;
+    }
+
+    .cash-form {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .cash-field label {
+        margin-bottom: 6px;
+        font-size: 11px;
+    }
+
+    .cash-field input,
+    .cash-field select {
+        height: 48px;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    .cash-amount-wrap input {
+        font-size: 19px;
+        font-weight: 800;
+    }
+
+    .cash-submit-row {
+        margin-top: 14px;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 9px;
+    }
+
+    .cash-save-button {
+        width: 100%;
+        min-width: 0;
+        min-height: 50px;
+        font-size: 15px;
+        border-radius: 11px;
+    }
+
+    .cash-result {
+        width: 100%;
+        font-size: 12px;
+    }
+
     /* =================================================
        BUTTONS
     ================================================= */
@@ -1395,6 +1660,172 @@ td {
     .upload-box {
         padding:
             22px 12px;
+    }
+
+
+    .cash-entry-card {
+        padding: 15px 12px;
+    }
+
+    .cash-entry-header p {
+        display: none;
+    }
+
+    .cash-mode-badge {
+        font-size: 9px;
+    }
+
+}
+
+
+
+/* =====================================================
+   FINAL MOBILE NAVIGATION + CONTINUOUS PAGE OVERRIDES
+===================================================== */
+
+@media (max-width: 750px) {
+
+    body {
+        padding-bottom: 24px;
+    }
+
+    .sidebar {
+        position: sticky;
+        position: -webkit-sticky;
+
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: auto;
+
+        width: 100%;
+        height: auto;
+
+        padding: 8px 10px;
+
+        background:
+            rgba(7,27,54,.97);
+
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+
+        border-top: none;
+        border-bottom:
+            1px solid rgba(255,255,255,.10);
+
+        box-shadow:
+            0 4px 18px rgba(7,27,54,.14);
+
+        z-index: 999;
+    }
+
+    .nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+
+        width: 100%;
+
+        gap: 6px;
+
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        padding-bottom: 1px;
+
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav button {
+        flex: 0 0 auto;
+
+        min-width: auto;
+        width: auto;
+
+        padding: 9px 12px;
+
+        border-radius: 9px;
+
+        font-size: 11px;
+    }
+
+    .nav span {
+        font-size: 11px;
+
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .nav button.active {
+        background: white;
+        color: var(--navy);
+    }
+
+    .download-button {
+        display: inline-flex !important;
+
+        border:
+            1px solid rgba(255,255,255,.18)
+            !important;
+
+        background:
+            rgba(255,255,255,.08)
+            !important;
+    }
+
+    .download-button span {
+        color: white;
+    }
+
+    .main {
+        padding-top: 18px;
+    }
+
+    .section {
+        display: block !important;
+        scroll-margin-top: 76px;
+    }
+
+    .section + .section {
+        margin-top: 16px;
+    }
+
+    #payments,
+    #review,
+    #pending,
+    #agent {
+        padding-top: 2px;
+    }
+
+    #agent {
+        margin-bottom: 18px;
+    }
+
+    #agent .agent {
+        margin-bottom: 0;
+    }
+}
+
+@media (max-width: 390px) {
+
+    .sidebar {
+        height: auto;
+        padding:
+            7px 8px;
+    }
+
+    .nav button {
+        padding:
+            8px 10px;
+    }
+
+    .nav span {
+        font-size: 10px;
     }
 }
 
@@ -1793,40 +2224,171 @@ td {
 </div>
 
 
-<div class="card agent">
+<!-- =====================================================
+     QUICK CASH ENTRY
+===================================================== -->
 
-    <h3>
-        Ask GCGW Agent
-    </h3>
+<div class="card cash-entry-card">
 
-    <div class="card-description">
+    <div class="cash-entry-header">
 
-        Ask questions about
-        company expenditure.
+        <div class="cash-entry-heading">
+
+            <div class="cash-entry-icon">
+                ₹
+            </div>
+
+            <div>
+                <h3>
+                    Quick Cash Entry
+                </h3>
+
+                <p>
+                    Record a cash expense directly.
+                    No screenshot or AI processing needed.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="cash-mode-badge">
+            CASH
+        </div>
 
     </div>
 
 
-    <div class="chat-row">
+    <div class="cash-form">
 
-        <input
-            id="quickQuestion"
-            placeholder="
-            Example: How much did we spend this month?">
+        <div class="cash-field">
+
+            <label for="cashAmount">
+                Amount
+            </label>
+
+            <div class="cash-amount-wrap">
+
+                <span class="cash-amount-symbol">
+                    ₹
+                </span>
+
+                <input
+                    id="cashAmount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    inputmode="decimal"
+                    placeholder="0.00">
+
+            </div>
+
+        </div>
+
+
+        <div class="cash-field">
+
+            <label for="cashPaidTo">
+                Paid To
+            </label>
+
+            <input
+                id="cashPaidTo"
+                type="text"
+                autocomplete="off"
+                placeholder="Person or supplier">
+
+        </div>
+
+
+        <div class="cash-field">
+
+            <label for="cashProject">
+                Project
+            </label>
+
+            <select id="cashProject">
+
+                <option value="">
+                    Select project
+                </option>
+
+                <option>Project A</option>
+                <option>Project B</option>
+                <option>Project C</option>
+                <option>General / Office</option>
+                <option>Unassigned</option>
+
+            </select>
+
+        </div>
+
+
+        <div class="cash-field">
+
+            <label for="cashCategory">
+                Category
+            </label>
+
+            <select id="cashCategory">
+
+                <option value="">
+                    Select category
+                </option>
+
+                <option>Material</option>
+                <option>Labour</option>
+                <option>Transport</option>
+                <option>Fuel</option>
+                <option>Machinery</option>
+                <option>Contractor / Subcontractor</option>
+                <option>Equipment</option>
+                <option>Site Expense</option>
+                <option>Office Expense</option>
+                <option>Advance Payment</option>
+                <option>Salary</option>
+                <option>Food / Accommodation</option>
+                <option>Other</option>
+
+            </select>
+
+        </div>
+
+
+        <div class="cash-field">
+
+            <label for="cashDate">
+                Date
+            </label>
+
+            <input
+                id="cashDate"
+                type="date">
+
+        </div>
+
+    </div>
+
+
+    <div class="cash-submit-row">
+
+        <div
+            id="cashEntryResult"
+            class="cash-result">
+        </div>
 
         <button
-            onclick="askAgent('quickQuestion')">
+            class="btn cash-save-button"
+            id="cashSaveButton"
+            onclick="saveCashEntry()">
 
-            Ask
+            + Add Cash Payment
 
         </button>
 
     </div>
 
-
-    <div id="agentAnswer"></div>
-
 </div>
+
 
 
 </section>
@@ -2274,23 +2836,12 @@ function showSection(
     button
 ) {
 
-    document
-        .querySelectorAll(".section")
-        .forEach(section => {
+    const target =
+        document.getElementById(id);
 
-            section.classList.remove(
-                "active"
-            );
-
-        });
-
-
-    document
-        .getElementById(id)
-        .classList.add(
-            "active"
-        );
-
+    if(!target) {
+        return;
+    }
 
     document
         .querySelectorAll(
@@ -2324,6 +2875,12 @@ function showSection(
     if(id === "pending") {
         loadPendingAI();
     }
+
+
+    target.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
 }
 
 
@@ -2437,6 +2994,250 @@ async function loadSummary() {
         );
     }
 }
+
+
+
+// =====================================================
+// CASH ENTRY
+// =====================================================
+
+function setCashDateToToday() {
+
+    const dateInput =
+        document.getElementById(
+            "cashDate"
+        );
+
+    if(!dateInput) {
+        return;
+    }
+
+    const now =
+        new Date();
+
+    const localDate =
+        new Date(
+            now.getTime() -
+            now.getTimezoneOffset() * 60000
+        )
+        .toISOString()
+        .split("T")[0];
+
+    dateInput.value =
+        localDate;
+}
+
+
+async function saveCashEntry() {
+
+    const amountInput =
+        document.getElementById(
+            "cashAmount"
+        );
+
+    const paidToInput =
+        document.getElementById(
+            "cashPaidTo"
+        );
+
+    const projectInput =
+        document.getElementById(
+            "cashProject"
+        );
+
+    const categoryInput =
+        document.getElementById(
+            "cashCategory"
+        );
+
+    const dateInput =
+        document.getElementById(
+            "cashDate"
+        );
+
+    const resultBox =
+        document.getElementById(
+            "cashEntryResult"
+        );
+
+    const saveButton =
+        document.getElementById(
+            "cashSaveButton"
+        );
+
+
+    const amount =
+        Number(
+            amountInput.value
+        );
+
+    const paidTo =
+        paidToInput.value.trim();
+
+    const project =
+        projectInput.value.trim();
+
+    const category =
+        categoryInput.value.trim();
+
+    const paymentDate =
+        dateInput.value;
+
+
+    resultBox.className =
+        "cash-result";
+
+    resultBox.textContent =
+        "";
+
+
+    if(
+        !amount ||
+        amount <= 0 ||
+        !paidTo ||
+        !project ||
+        !category ||
+        !paymentDate
+    ) {
+
+        resultBox.className =
+            "cash-result error";
+
+        resultBox.textContent =
+            "Enter amount, paid to, project, category and date.";
+
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            "Add this cash payment?\n\n" +
+            "Amount: " +
+            formatINR(amount) + "\n" +
+            "Paid To: " +
+            paidTo + "\n" +
+            "Project: " +
+            project + "\n" +
+            "Category: " +
+            category + "\n" +
+            "Date: " +
+            paymentDate
+        );
+
+
+    if(!confirmed) {
+        return;
+    }
+
+
+    saveButton.disabled =
+        true;
+
+    saveButton.textContent =
+        "Saving...";
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/cash-entry",
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            amount:
+                                amount,
+
+                            paid_to:
+                                paidTo,
+
+                            project:
+                                project,
+
+                            category:
+                                category,
+
+                            date:
+                                paymentDate
+                        })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if(!response.ok) {
+
+            throw new Error(
+                data.error ||
+                data.detail ||
+                "Could not save cash payment."
+            );
+        }
+
+
+        resultBox.className =
+            "cash-result success";
+
+        resultBox.textContent =
+            formatINR(amount) +
+            " cash payment added successfully.";
+
+
+        amountInput.value =
+            "";
+
+        paidToInput.value =
+            "";
+
+        projectInput.value =
+            "";
+
+        categoryInput.value =
+            "";
+
+        setCashDateToToday();
+
+
+        await loadSummary();
+
+        await loadPayments();
+
+    }
+
+    catch(error) {
+
+        resultBox.className =
+            "cash-result error";
+
+        resultBox.textContent =
+            "Cash entry error: " +
+            error.message;
+    }
+
+    finally {
+
+        saveButton.disabled =
+            false;
+
+        saveButton.textContent =
+            "+ Add Cash Payment";
+    }
+}
+
+
+setCashDateToToday();
 
 
 // =====================================================
@@ -3621,6 +4422,85 @@ document.getElementById(
     }
 );
 
+
+
+
+// =====================================================
+// SCROLL SPY FOR CONTINUOUS DASHBOARD
+// =====================================================
+
+const scrollSections = [
+    "dashboard",
+    "payments",
+    "review",
+    "pending",
+    "agent"
+];
+
+const sectionObserver =
+    new IntersectionObserver(
+        entries => {
+
+            const visible =
+                entries
+                .filter(entry =>
+                    entry.isIntersecting
+                )
+                .sort(
+                    (a, b) =>
+                        b.intersectionRatio -
+                        a.intersectionRatio
+                );
+
+            if(!visible.length) {
+                return;
+            }
+
+            const activeId =
+                visible[0].target.id;
+
+            document
+                .querySelectorAll(
+                    ".nav button"
+                )
+                .forEach(button => {
+
+                    const handler =
+                        button.getAttribute(
+                            "onclick"
+                        ) || "";
+
+                    button.classList.toggle(
+                        "active",
+                        handler.includes(
+                            "'" + activeId + "'"
+                        )
+                    );
+                });
+        },
+        {
+            root: null,
+            rootMargin:
+                "-70px 0px -55% 0px",
+            threshold: [
+                0.01,
+                0.1,
+                0.25,
+                0.5
+            ]
+        }
+    );
+
+
+scrollSections.forEach(id => {
+
+    const section =
+        document.getElementById(id);
+
+    if(section) {
+        sectionObserver.observe(section);
+    }
+});
 
 // =====================================================
 // INITIAL LOAD
