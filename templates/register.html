@@ -1,641 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Register | GCGW Payment Agent</title>
-
 <style>
-
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+*{box-sizing:border-box;margin:0;padding:0}
+html{min-height:100%;background:#071b36}
+body{font-family:Arial,Helvetica,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#071b36,#123b68);padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}
+.auth-card{width:100%;max-width:460px;background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.logo-container{text-align:center;margin-bottom:16px}
+.logo-container img{width:82px;height:82px;object-fit:contain;border-radius:14px;background:#fff;padding:4px}
+h1{text-align:center;color:#071b36;font-size:27px;margin-bottom:8px}
+.subtitle{text-align:center;color:#6c7887;font-size:14px;line-height:1.45;margin-bottom:28px}
+.form-group{margin-bottom:18px}
+label{display:block;font-size:13px;font-weight:700;color:#344256;margin-bottom:8px}
+input{width:100%;min-height:50px;padding:13px 14px;border:1px solid #ccd6e2;border-radius:10px;font-size:16px;outline:none;background:#fff}
+input:focus{border-color:#1f5f99;box-shadow:0 0 0 3px rgba(31,95,153,.10)}
+.password-wrapper{position:relative}
+.password-wrapper input{padding-right:78px}
+.toggle-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:transparent;color:#1f5f99;font-size:13px;font-weight:700;cursor:pointer;padding:5px}
+.password-note{margin-top:7px;font-size:11px;color:#8a95a3}
+.main-button{width:100%;min-height:52px;padding:12px;border:none;border-radius:10px;background:#071b36;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.main-button:hover{background:#102c50}
+.main-button:disabled{opacity:.6;cursor:not-allowed}
+#messageBox{display:none;margin-top:16px;padding:12px 13px;border-radius:9px;background:#fdeceb;color:#c0392b;font-size:13px;line-height:1.4}
+.success{background:#eaf7ef!important;color:#198754!important}
+.login-link{margin-top:23px;text-align:center;font-size:14px;color:#6c7887}
+.login-link a{color:#1f5f99;text-decoration:none;font-weight:700}
+.company{margin-top:25px;padding-top:18px;border-top:1px solid #e1e7ef;text-align:center;font-size:12px;line-height:1.45;color:#8a95a3}
+@media(max-width:480px){
+body{align-items:flex-start;padding-top:max(34px,env(safe-area-inset-top))}
+.auth-card{padding:24px 20px;border-radius:18px}
+.logo-container img{width:74px;height:74px}
+h1{font-size:25px}
 }
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    min-height: 100vh;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background:
-        linear-gradient(
-            135deg,
-            #071b36,
-            #123b68
-        );
-
-    padding: 20px;
-}
-
-.auth-card {
-    width: 100%;
-    max-width: 460px;
-
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 36px;
-
-    box-shadow:
-        0 20px 60px
-        rgba(0,0,0,.22);
-}
-
-.logo-container {
-    text-align: center;
-    margin-bottom: 18px;
-}
-
-.logo-container img {
-    width: 85px;
-    height: 85px;
-
-    object-fit: contain;
-
-    border-radius: 14px;
-
-    background: white;
-
-    padding: 5px;
-}
-
-h1 {
-    text-align: center;
-
-    color: #071b36;
-
-    font-size: 25px;
-
-    margin-bottom: 8px;
-}
-
-.subtitle {
-    text-align: center;
-
-    color: #6c7887;
-
-    font-size: 13px;
-
-    margin-bottom: 28px;
-}
-
-.form-group {
-    margin-bottom: 17px;
-}
-
-label {
-    display: block;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    color: #344256;
-
-    margin-bottom: 7px;
-}
-
-input {
-    width: 100%;
-
-    padding: 12px 13px;
-
-    border: 1px solid #ccd6e2;
-
-    border-radius: 8px;
-
-    font-size: 14px;
-
-    outline: none;
-}
-
-input:focus {
-    border-color: #1f5f99;
-
-    box-shadow:
-        0 0 0 3px
-        rgba(31,95,153,.10);
-}
-
-.password-wrapper {
-    position: relative;
-}
-
-.password-wrapper input {
-    padding-right: 80px;
-}
-
-.toggle-password {
-    position: absolute;
-
-    right: 12px;
-    top: 50%;
-
-    transform: translateY(-50%);
-
-    border: none;
-    background: transparent;
-
-    color: #1f5f99;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    cursor: pointer;
-
-    padding: 4px;
-}
-
-.main-button {
-    width: 100%;
-
-    padding: 12px;
-
-    margin-top: 8px;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background: #071b36;
-    color: white;
-
-    font-size: 14px;
-    font-weight: 700;
-
-    cursor: pointer;
-}
-
-.main-button:hover {
-    background: #102c50;
-}
-
-.main-button:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
-
-#messageBox {
-    display: none;
-
-    margin-top: 16px;
-
-    padding: 11px;
-
-    border-radius: 7px;
-
-    background: #fdeceb;
-    color: #c0392b;
-
-    font-size: 12px;
-}
-
-.success {
-    background: #eaf7ef !important;
-    color: #198754 !important;
-}
-
-.login-link {
-    margin-top: 22px;
-
-    text-align: center;
-
-    font-size: 13px;
-
-    color: #6c7887;
-}
-
-.login-link a {
-    color: #1f5f99;
-
-    text-decoration: none;
-
-    font-weight: 700;
-}
-
-.login-link a:hover {
-    text-decoration: underline;
-}
-
-.company {
-    margin-top: 26px;
-
-    padding-top: 18px;
-
-    border-top: 1px solid #e1e7ef;
-
-    text-align: center;
-
-    font-size: 11px;
-
-    color: #8a95a3;
-}
-
-.password-note {
-    margin-top: 6px;
-
-    font-size: 11px;
-
-    color: #8a95a3;
-}
-
 </style>
-
 </head>
-
 <body>
-
 <div class="auth-card">
-
-    <div class="logo-container">
-        <img
-            src="/static/logo.png"
-            alt="GCGW Logo"
-        >
-    </div>
-
-    <h1>
-        Create Account
-    </h1>
-
-    <div class="subtitle">
-        Register for GCGW Payment Management Agent
-    </div>
-
-
-    <form id="registerForm">
-
-        <div class="form-group">
-
-            <label for="fullName">
-                Full Name
-            </label>
-
-            <input
-                id="fullName"
-                type="text"
-                placeholder="Enter your full name"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="email">
-                Email Address
-            </label>
-
-            <input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="password">
-                Password
-            </label>
-
-            <div class="password-wrapper">
-
-                <input
-                    id="password"
-                    type="password"
-                    placeholder="Create a password"
-                    required
-                >
-
-                <button
-                    type="button"
-                    class="toggle-password"
-                    onclick="togglePassword('password', this)"
-                >
-                    Show
-                </button>
-
-            </div>
-
-            <div class="password-note">
-                Minimum 8 characters
-            </div>
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="confirmPassword">
-                Confirm Password
-            </label>
-
-            <div class="password-wrapper">
-
-                <input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Re-enter your password"
-                    required
-                >
-
-                <button
-                    type="button"
-                    class="toggle-password"
-                    onclick="togglePassword('confirmPassword', this)"
-                >
-                    Show
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <button
-            type="submit"
-            id="registerButton"
-            class="main-button"
-        >
-            Create Account
-        </button>
-
-    </form>
-
-
-    <div id="messageBox"></div>
-
-
-    <div class="login-link">
-
-        Already have an account?
-
-        <a href="/">
-            Login
-        </a>
-
-    </div>
-
-
-    <div class="company">
-
-        Gopal Chavan Guniting Work
-        <br>
-        Secure Payment Management System
-
-    </div>
-
+<div class="logo-container"><img src="/static/logo.png" alt="GCGW Logo"></div>
+<h1>Create Account</h1>
+<div class="subtitle">Register once, then use the same email and password whenever you log in.</div>
+<form id="registerForm">
+<div class="form-group">
+<label for="fullName">Full Name</label>
+<input id="fullName" name="name" type="text" placeholder="Enter your full name" autocomplete="name" required>
 </div>
-
-
+<div class="form-group">
+<label for="email">Email Address</label>
+<input id="email" name="email" type="email" placeholder="Enter your email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
+</div>
+<div class="form-group">
+<label for="password">Password</label>
+<div class="password-wrapper">
+<input id="password" name="new-password" type="password" placeholder="Create a password" autocomplete="new-password" minlength="8" required>
+<button type="button" class="toggle-password" onclick="togglePassword('password',this)">Show</button>
+</div>
+<div class="password-note">Minimum 8 characters</div>
+</div>
+<div class="form-group">
+<label for="confirmPassword">Confirm Password</label>
+<div class="password-wrapper">
+<input id="confirmPassword" name="confirm-password" type="password" placeholder="Re-enter your password" autocomplete="new-password" minlength="8" required>
+<button type="button" class="toggle-password" onclick="togglePassword('confirmPassword',this)">Show</button>
+</div>
+</div>
+<button type="submit" id="registerButton" class="main-button">Create Account</button>
+</form>
+<div id="messageBox"></div>
+<div class="login-link">Already have an account? <a href="/">Login</a></div>
+<div class="company">Gopal Chavan Guniting Work<br>Secure Payment Management System</div>
+</div>
 <script>
-
-function togglePassword(
-    inputId,
-    button
-) {
-
-    const input =
-        document.getElementById(
-            inputId
-        );
-
-    if(input.type === "password") {
-
-        input.type = "text";
-
-        button.textContent =
-            "Hide";
-
-    }
-
-    else {
-
-        input.type = "password";
-
-        button.textContent =
-            "Show";
-
-    }
-
+function togglePassword(inputId,button){
+const input=document.getElementById(inputId);
+if(input.type==="password"){input.type="text";button.textContent="Hide";}
+else{input.type="password";button.textContent="Show";}
 }
-
-
-const form =
-    document.getElementById(
-        "registerForm"
-    );
-
-const messageBox =
-    document.getElementById(
-        "messageBox"
-    );
-
-const button =
-    document.getElementById(
-        "registerButton"
-    );
-
-
-form.addEventListener(
-    "submit",
-    async function(event) {
-
-        event.preventDefault();
-
-
-        messageBox.style.display =
-            "none";
-
-        messageBox.classList.remove(
-            "success"
-        );
-
-
-        const fullName =
-            document.getElementById(
-                "fullName"
-            ).value.trim();
-
-
-        const email =
-            document.getElementById(
-                "email"
-            ).value.trim();
-
-
-        const password =
-            document.getElementById(
-                "password"
-            ).value;
-
-
-        const confirmPassword =
-            document.getElementById(
-                "confirmPassword"
-            ).value;
-
-
-        if(
-            !fullName ||
-            !email ||
-            !password ||
-            !confirmPassword
-        ) {
-
-            showMessage(
-                "Please complete all fields.",
-                false
-            );
-
-            return;
-        }
-
-
-        if(password.length < 8) {
-
-            showMessage(
-                "Password must contain at least 8 characters.",
-                false
-            );
-
-            return;
-        }
-
-
-        if(password !== confirmPassword) {
-
-            showMessage(
-                "Passwords do not match.",
-                false
-            );
-
-            return;
-        }
-
-
-        button.disabled = true;
-
-        button.textContent =
-            "Creating Account...";
-
-
-        try {
-
-            const response =
-                await fetch(
-                    "/api/register",
-                    {
-                        method:
-                            "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify({
-                                full_name:
-                                    fullName,
-
-                                email:
-                                    email,
-
-                                password:
-                                    password
-                            })
-                    }
-                );
-
-
-            const data =
-                await response.json();
-
-
-            if(!response.ok) {
-
-                throw new Error(
-                    data.error ||
-                    data.detail ||
-                    "Registration failed."
-                );
-            }
-
-
-            showMessage(
-                "Account created successfully. Redirecting...",
-                true
-            );
-
-
-            setTimeout(
-                () => {
-
-                    window.location.href =
-                        "/dashboard";
-
-                },
-                700
-            );
-
-
-        }
-
-        catch(error) {
-
-            showMessage(
-                error.message,
-                false
-            );
-
-        }
-
-        finally {
-
-            button.disabled = false;
-
-            button.textContent =
-                "Create Account";
-
-        }
-
-    }
-);
-
-
-function showMessage(
-    message,
-    success
-) {
-
-    messageBox.textContent =
-        message;
-
-    messageBox.classList.toggle(
-        "success",
-        success
-    );
-
-    messageBox.style.display =
-        "block";
-
+const form=document.getElementById("registerForm");
+const messageBox=document.getElementById("messageBox");
+const button=document.getElementById("registerButton");
+form.addEventListener("submit",async function(event){
+event.preventDefault();
+messageBox.style.display="none";
+messageBox.classList.remove("success");
+const fullName=document.getElementById("fullName").value.trim();
+const email=document.getElementById("email").value.trim();
+const password=document.getElementById("password").value;
+const confirmPassword=document.getElementById("confirmPassword").value;
+if(!fullName||!email||!password||!confirmPassword){showMessage("Please complete all fields.",false);return;}
+if(password.length<8){showMessage("Password must contain at least 8 characters.",false);return;}
+if(password!==confirmPassword){showMessage("Passwords do not match.",false);return;}
+button.disabled=true;
+button.textContent="Creating Account...";
+try{
+const response=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({full_name:fullName,email:email,password:password})});
+const data=await response.json();
+if(!response.ok){throw new Error(data.error||data.detail||"Registration failed.");}
+localStorage.setItem("gcgw_login_email",email);
+showMessage("Account created successfully. Redirecting...",true);
+setTimeout(()=>{window.location.href="/dashboard";},450);
+}catch(error){showMessage(error.message,false);}
+finally{button.disabled=false;button.textContent="Create Account";}
+});
+function showMessage(message,success){
+messageBox.textContent=message;
+messageBox.classList.toggle("success",success);
+messageBox.style.display="block";
 }
-
 </script>
-
 </body>
-
 </html>
